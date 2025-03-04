@@ -1,25 +1,29 @@
-# Terraform Provider Scaffolding (Terraform Plugin Framework)
+# Terraform Provider for Google Play Console (Terraform Plugin Framework)
 
 _This template repository is built on the [Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework). The template repository built on the [Terraform Plugin SDK](https://github.com/hashicorp/terraform-plugin-sdk) can be found at [terraform-provider-scaffolding](https://github.com/hashicorp/terraform-provider-scaffolding). See [Which SDK Should I Use?](https://developer.hashicorp.com/terraform/plugin/framework-benefits) in the Terraform documentation for additional information._
 
-This repository is a *template* for a [Terraform](https://www.terraform.io) provider. It is intended as a starting point for creating Terraform providers, containing:
+This repository is a [Terraform](https://www.terraform.io) provider for managing resources in the [Google Play Console](https://developers.google.com/android-publisher/api-ref/rest).
 
-- A resource and a data source (`internal/provider/`),
-- Examples (`examples/`) and generated documentation (`docs/`),
-- Miscellaneous meta files.
+This project is still a work-in-progress and is therefore not yet [published on the Terraform Registry](https://developer.hashicorp.com/terraform/registry/providers/publishing).
 
-These files contain boilerplate code that you will need to edit to create your own Terraform provider. Tutorials for creating Terraform providers can be found on the [HashiCorp Developer](https://developer.hashicorp.com/terraform/tutorials/providers-plugin-framework) platform. _Terraform Plugin Framework specific guides are titled accordingly._
+## Usage
 
-Please see the [GitHub template repository documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) for how to create a new repository from this template on GitHub.
+**This repository is still a work-in-progress. Example usage will be added in a future pull request.**
 
-Once you've written your provider, you'll want to [publish it on the Terraform Registry](https://developer.hashicorp.com/terraform/registry/providers/publishing) so that others can use it.
+## Contributing
 
-## Requirements
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request## Requirements
 
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
 - [Go](https://golang.org/doc/install) >= 1.22
 
-## Building The Provider
+### Building The Provider
 
 1. Clone the repository
 1. Enter the repository directory
@@ -29,7 +33,7 @@ Once you've written your provider, you'll want to [publish it on the Terraform R
 go install
 ```
 
-## Adding Dependencies
+### Adding Dependencies
 
 This provider uses [Go modules](https://github.com/golang/go/wiki/Modules).
 Please see the Go documentation for the most up to date information about using Go modules.
@@ -43,11 +47,11 @@ go mod tidy
 
 Then commit the changes to `go.mod` and `go.sum`.
 
-## Using the provider
+### Using the provider
 
 Fill this in for each provider
 
-## Developing the Provider
+### Developing the Provider
 
 If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (see [Requirements](#requirements) above).
 
@@ -61,4 +65,12 @@ In order to run the full suite of Acceptance tests, run `make testacc`.
 
 ```shell
 make testacc
+```
+
+### Commits
+
+[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) are required for each pull request to ensure that release versioning can be managed automatically.
+Please ensure that you have enabled the Git hooks, so that you don't get caught out!:
+```
+git config core.hooksPath hooks
 ```
