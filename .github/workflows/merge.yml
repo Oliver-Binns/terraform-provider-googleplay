@@ -1,0 +1,29 @@
+name: Create release
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Deploy to App Store Connect
+    runs-on: macos-15
+
+    steps:
+      - name: Add Path Globally
+        run: echo "/usr/local/bin" >> $GITHUB_PATH
+
+      - name: Increment Version
+        id: versioning
+        uses: Oliver-Binns/Versioning@ea913b155653c7f72c3ecb01768d8103ad57f639 # 1.2.2
+        with:
+          ACTION_TYPE: Release
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

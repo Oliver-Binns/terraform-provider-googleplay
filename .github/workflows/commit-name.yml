@@ -1,0 +1,26 @@
+name: Enforce Commit Name
+
+on:
+  pull_request:
+    types: [ opened, reopened, synchronize, ready_for_review ]
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Validate Pull Request
+    if: github.event.pull_request.draft == false
+    runs-on: macos-15
+
+    steps:
+      - name: Add Path Globally
+        run: echo "/usr/local/bin" >> $GITHUB_PATH
+
+      - name: Validate Pull Request Name
+        id: versioning
+        uses: Oliver-Binns/Versioning@main
+        with:
+          ACTION_TYPE: 'Validate'
