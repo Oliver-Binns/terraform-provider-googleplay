@@ -13,8 +13,8 @@ description: |-
 ## Example Usage
 
 ```terraform
-provider "scaffolding" {
-  # example configuration here
+provider "google_play_console" {
+  service_account_json = file("service_account.json")
 }
 ```
 

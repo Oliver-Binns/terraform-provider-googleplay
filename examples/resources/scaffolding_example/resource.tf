@@ -1,3 +1,4 @@
-resource "scaffolding_example" "example" {
-  configurable_attribute = "some-value"
+resource "google_play_console_user" "test" {
+  name  = "Oliver Binns"
+  email = "test@oliverbinns.co.uk"
 }

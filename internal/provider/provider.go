@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
 	"github.com/hashicorp/terraform-plugin-framework/function"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
@@ -19,7 +18,6 @@ import (
 // Ensure ScaffoldingProvider satisfies various provider interfaces.
 var _ provider.Provider = &ScaffoldingProvider{}
 var _ provider.ProviderWithFunctions = &ScaffoldingProvider{}
-var _ provider.ProviderWithEphemeralResources = &ScaffoldingProvider{}
 
 // ScaffoldingProvider defines the provider implementation.
 type ScaffoldingProvider struct {
@@ -71,12 +69,6 @@ func (p *ScaffoldingProvider) Configure(ctx context.Context, req provider.Config
 func (p *ScaffoldingProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewExampleResource,
-	}
-}
-
-func (p *ScaffoldingProvider) EphemeralResources(ctx context.Context) []func() ephemeral.EphemeralResource {
-	return []func() ephemeral.EphemeralResource{
-		NewExampleEphemeralResource,
 	}
 }
 
