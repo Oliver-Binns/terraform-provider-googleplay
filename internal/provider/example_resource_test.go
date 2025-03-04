@@ -81,5 +81,9 @@ func testAccExampleResourceConfig(configurableAttribute string) string {
 resource "googleplay_example" "test" {
   configurable_attribute = %[1]q
 }
+
+provider "googleplay" {
+  service_account_json = "{}"
+}
 `, configurableAttribute)
 }
