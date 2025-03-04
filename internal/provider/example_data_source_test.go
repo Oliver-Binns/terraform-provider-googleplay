@@ -36,4 +36,8 @@ const testAccExampleDataSourceConfig = `
 data "googleplay_example" "test" {
   configurable_attribute = "example"
 }
+
+provider "googleplay" {
+  service_account_json = "{}"
+}
 `
