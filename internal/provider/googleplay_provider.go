@@ -68,7 +68,7 @@ func (p *GooglePlayProvider) Configure(ctx context.Context, req provider.Configu
 
 func (p *GooglePlayProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewExampleResource,
+		NewUserResource,
 	}
 }
 
