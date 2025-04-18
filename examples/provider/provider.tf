@@ -1,3 +1,3 @@
-provider "google_play_console" {
+provider "googleplay" {
   service_account_json = file("service_account.json")
 }

@@ -1,4 +1,4 @@
-module github.com/hashicorp/terraform-provider-scaffolding-framework
+module github.com/oliver-binns/terraform-provider-googleplay
 
 go 1.23.0
 

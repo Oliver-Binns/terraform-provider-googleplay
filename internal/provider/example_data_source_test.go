@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package provider
 
 import (
@@ -22,7 +19,7 @@ func TestAccExampleDataSource(t *testing.T) {
 				Config: testAccExampleDataSourceConfig,
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
-						"data.scaffolding_example.test",
+						"data.googleplay_example.test",
 						tfjsonpath.New("id"),
 						knownvalue.StringExact("example-id"),
 					),
@@ -33,7 +30,11 @@ func TestAccExampleDataSource(t *testing.T) {
 }
 
 const testAccExampleDataSourceConfig = `
-data "scaffolding_example" "test" {
+data "googleplay_example" "test" {
   configurable_attribute = "example"
+}
+
+provider "googleplay" {
+  service_account_json = "{}"
 }
 `
