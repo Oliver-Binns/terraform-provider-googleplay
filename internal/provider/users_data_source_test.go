@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
-func TestAccExampleDataSource(t *testing.T) {
+func TestAccUsersDataSource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -19,7 +19,7 @@ func TestAccExampleDataSource(t *testing.T) {
 				Config: testAccExampleDataSourceConfig,
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
-						"data.googleplay_example.test",
+						"data.googleplay_user.test",
 						tfjsonpath.New("id"),
 						knownvalue.StringExact("example-id"),
 					),
@@ -30,11 +30,12 @@ func TestAccExampleDataSource(t *testing.T) {
 }
 
 const testAccExampleDataSourceConfig = `
-data "googleplay_example" "test" {
-  configurable_attribute = "example"
+data "googleplay_user" "oliver" {
+  name = "Oliver Binns"
+  email = "mail@oliverbinns.co.uk"
 }
 
 provider "googleplay" {
-  service_account_json = "{}"
+  service_account_json_base64 = var.service_account_json_base64
 }
 `

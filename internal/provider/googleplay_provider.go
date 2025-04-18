@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -10,6 +12,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/oliver-binns/googleplay-go/authorization"
+	"github.com/oliver-binns/googleplay-go/networking"
 )
 
 var _ provider.Provider = &GooglePlayProvider{}
@@ -23,7 +28,7 @@ type GooglePlayProvider struct {
 }
 
 type GooglePlayProviderModel struct {
-	ServiceAccountJson types.String `tfsdk:"service_account_json"`
+	ServiceAccountJson types.String `tfsdk:"service_account_json_base64"`
 }
 
 func (p *GooglePlayProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -35,7 +40,7 @@ func (p *GooglePlayProvider) Schema(ctx context.Context, req provider.SchemaRequ
 	resp.Schema = schema.Schema{
 		Description: "Interact with Google Play Console",
 		Attributes: map[string]schema.Attribute{
-			"service_account_json": schema.StringAttribute{
+			"service_account_json_base64": schema.StringAttribute{
 				MarkdownDescription: `The service account JSON data used to authenticate with Google:
 				https://developers.google.com/android-publisher/getting_started#service-account`,
 				Required:  true,
@@ -54,13 +59,33 @@ func (p *GooglePlayProvider) Configure(ctx context.Context, req provider.Configu
 		return
 	}
 
-	// Configuration values are now available.
-	// if data.Endpoint.IsNull() { /* ... */ }
+	serviceAccountBase64 := data.ServiceAccountJson.ValueString()
+	rawJson, err := base64.StdEncoding.DecodeString(serviceAccountBase64)
+	log(err, resp)
 
-	// Example client configuration for data sources and resources
-	client := http.DefaultClient
+	serviceAccount := authorization.ServiceAccount{}
+	err = json.Unmarshal(rawJson, &serviceAccount)
+	log(err, resp)
+
+	tokenSource, err := authorization.NewTokenSource(serviceAccount)
+	log(err, resp)
+
+	tokenExchanger := authorization.NewTokenExchanger(http.DefaultClient, tokenSource, context.Background())
+	authorizedClient := networking.NewAuthorizedClient(http.DefaultClient, tokenExchanger)
+
+	client := authorizedClient
 	resp.DataSourceData = client
 	resp.ResourceData = client
+}
+
+func log(err error, resp *provider.ConfigureResponse) {
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error parsing service account JSON",
+			err.Error(),
+		)
+		return
+	}
 }
 
 func (p *GooglePlayProvider) Resources(ctx context.Context) []func() resource.Resource {
@@ -71,7 +96,7 @@ func (p *GooglePlayProvider) Resources(ctx context.Context) []func() resource.Re
 
 func (p *GooglePlayProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewExampleDataSource,
+		NewUsersDataSource,
 	}
 }
 

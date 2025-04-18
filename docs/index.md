@@ -23,5 +23,5 @@ provider "googleplay" {
 
 ### Required
 
-- `service_account_json` (String, Sensitive) The service account JSON data used to authenticate with Google:
+- `service_account_json_base64` (String, Sensitive) The service account JSON data used to authenticate with Google:
 				https://developers.google.com/android-publisher/getting_started#service-account
