@@ -81,5 +81,6 @@ jobs:
       - run: go mod download
       - env:
           TF_ACC: "1"
+          TF_VAR_service_account_json_base64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 }}
         run: go test -v -cover ./internal/provider/
         timeout-minutes: 10
