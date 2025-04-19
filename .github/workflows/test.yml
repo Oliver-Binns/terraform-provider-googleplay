@@ -88,3 +88,6 @@ jobs:
           TF_ACC: "1"
         run: go test -v -cover ./internal/provider/
         timeout-minutes: 10
+      - name: Clean-up
+        if: always()
+        run: rm ~/service-account.json
