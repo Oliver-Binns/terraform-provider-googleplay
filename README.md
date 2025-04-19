@@ -8,7 +8,37 @@ This project is still a work-in-progress and is therefore not yet [published on 
 
 ## Usage
 
-**This repository is still a work-in-progress. Example usage will be added in a future pull request.**
+### Provider
+
+Start by declaring a Google Play provider.
+
+This should contain:
+
+- a base64 encoded string representation of your Google Service Account json file which is used for authenticating against the Google Play Developer API. Refer to the [Google Developer documentation](https://developers.google.com/android-publisher/getting_started/?hl=en) for more details.
+- Your Google Play developer ID, this is a 19-digit number than can be found in the Google Play Console.
+
+```tf
+provider "googleplay" {
+  service_account_json_base64 = filebase64("~/service-account.json")
+  developer_id = "5166846112789481453"
+}
+```
+
+### Managing Users
+
+You can manage Google Play Console users as a Terraform resource (`googleplay_user`).
+
+Each user requires an email address that they will use to authenticate with the Google Play Console.
+
+A set of [Developer Account permissions](https://developers.google.com/android-publisher/api-ref/rest/v3/users#DeveloperLevelPermission) is also required. This list can be empty.
+
+```tf
+resource "googleplay_user" "oliver" {
+  email = "example@oliverbinns.co.uk"
+  permissions = ["CAN_SEE_ALL_APPS", "CAN_MANAGE_DRAFT_APPS_GLOBAL"]
+}
+```
+
 
 ## Contributing
 
