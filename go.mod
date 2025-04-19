@@ -9,7 +9,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.26.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-testing v1.12.0
-	github.com/oliver-binns/googleplay-go v0.0.0-20250419110401-2b122ae59aae
+	github.com/oliver-binns/googleplay-go v0.0.0-20250419135636-9c2ed89388ef
 )
 
 require (
