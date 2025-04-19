@@ -3,8 +3,6 @@ package provider
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
-	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/function"
@@ -13,8 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"github.com/oliver-binns/googleplay-go/authorization"
-	"github.com/oliver-binns/googleplay-go/networking"
+	"github.com/oliver-binns/googleplay-go"
 )
 
 var _ provider.Provider = &GooglePlayProvider{}
@@ -29,6 +26,7 @@ type GooglePlayProvider struct {
 
 type GooglePlayProviderModel struct {
 	ServiceAccountJson types.String `tfsdk:"service_account_json_base64"`
+	DeveloperID        types.String `tfsdk:"developer_id"`
 }
 
 func (p *GooglePlayProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -45,6 +43,12 @@ func (p *GooglePlayProvider) Schema(ctx context.Context, req provider.SchemaRequ
 				https://developers.google.com/android-publisher/getting_started#service-account`,
 				Required:  true,
 				Sensitive: true,
+			},
+			"developer_id": schema.StringAttribute{
+				MarkdownDescription: `Your unique 19-digit Google Play Developer account ID:
+				https://support.google.com/googleplay/android-developer/answer/13634081?hl=en-GB`,
+				Required:  true,
+				Sensitive: false,
 			},
 		},
 	}
@@ -63,17 +67,12 @@ func (p *GooglePlayProvider) Configure(ctx context.Context, req provider.Configu
 	rawJson, err := base64.StdEncoding.DecodeString(serviceAccountBase64)
 	log(err, resp)
 
-	serviceAccount := authorization.ServiceAccount{}
-	err = json.Unmarshal(rawJson, &serviceAccount)
-	log(err, resp)
+	developerID := data.DeveloperID.ValueString()
 
-	tokenSource, err := authorization.NewTokenSource(serviceAccount)
-	log(err, resp)
-
-	tokenExchanger := authorization.NewTokenExchanger(http.DefaultClient, tokenSource, context.Background())
-	authorizedClient := networking.NewAuthorizedClient(http.DefaultClient, tokenExchanger)
-
-	client := authorizedClient
+	client := googleplay.GooglePlayClient(
+		developerID,
+		string(rawJson),
+	)
 	resp.DataSourceData = client
 	resp.ResourceData = client
 }
@@ -96,7 +95,7 @@ func (p *GooglePlayProvider) Resources(ctx context.Context) []func() resource.Re
 
 func (p *GooglePlayProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewUsersDataSource,
+		NewUserDataSource,
 	}
 }
 

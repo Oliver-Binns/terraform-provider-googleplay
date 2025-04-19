@@ -1,3 +1,0 @@
-data "googleplay_example" "example" {
-  configurable_attribute = "some-value"
-}

@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/oliver-binns/googleplay-go/networking"
-	"github.com/oliver-binns/googleplay-go/users"
+	"github.com/oliver-binns/googleplay-go"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -14,28 +13,28 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var (
-	_ datasource.DataSource              = &usersDataSource{}
-	_ datasource.DataSourceWithConfigure = &usersDataSource{}
+	_ datasource.DataSource              = &userDataSource{}
+	_ datasource.DataSourceWithConfigure = &userDataSource{}
 )
 
-type usersDataSourceModel struct {
+type userDataSourceModel struct {
 	Name  types.String `tfsdk:"name"`
 	Email types.String `tfsdk:"email"`
 }
 
-type usersDataSource struct {
-	client *networking.HTTPClient
+type userDataSource struct {
+	client *googleplay.Client
 }
 
-func NewUsersDataSource() datasource.DataSource {
-	return &usersDataSource{}
+func NewUserDataSource() datasource.DataSource {
+	return &userDataSource{}
 }
 
-func (d *usersDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (d *userDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_user"
 }
 
-func (d *usersDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *userDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Fetches user data from the Google Play API.",
 
@@ -52,18 +51,18 @@ func (d *usersDataSource) Schema(ctx context.Context, req datasource.SchemaReque
 	}
 }
 
-func (d *usersDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *userDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
 	}
 
-	client, ok := req.ProviderData.(*networking.HTTPClient)
+	client, ok := req.ProviderData.(*googleplay.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *googleplay.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -72,8 +71,8 @@ func (d *usersDataSource) Configure(ctx context.Context, req datasource.Configur
 	d.client = client
 }
 
-func (d *usersDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data usersDataSourceModel
+func (d *userDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data userDataSourceModel
 
 	// Read Terraform configuration data into the model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
@@ -81,8 +80,17 @@ func (d *usersDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
+	email := data.Email.ValueString()
+	if email == "" {
+		resp.Diagnostics.AddError(
+			"Missing required attribute",
+			"Attribute 'email' is required to fetch user information.",
+		)
+		return
+	}
+
 	// List users from Google Play API
-	users, err := users.List(*d.client, ctx, "")
+	users, err := d.client.ListUsers()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to fetch users",
@@ -91,10 +99,13 @@ func (d *usersDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	user := users[0]
-
-	data.Name = types.StringValue(user.Name)
-	data.Email = types.StringValue(user.Email)
+	for _, user := range users {
+		if user.Email == email {
+			data.Name = types.StringValue(user.Name)
+			data.Email = types.StringValue(user.Email)
+			break
+		}
+	}
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

@@ -79,8 +79,12 @@ jobs:
           terraform_version: ${{ matrix.terraform }}
           terraform_wrapper: false
       - run: go mod download
+      - name: Create service-account.json
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON_BASE64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 }}
+        run: |
+          echo $GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 | base64 --decode > ~/service-account.json
       - env:
           TF_ACC: "1"
-          TF_VAR_service_account_json_base64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 }}
         run: go test -v -cover ./internal/provider/
         timeout-minutes: 10
