@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package provider
 
 import (
@@ -83,7 +80,8 @@ resource "googleplay_example" "test" {
 }
 
 provider "googleplay" {
-  service_account_json = "{}"
+  service_account_json_base64 = filebase64("~/service-account.json")
+  developer_id = "5166846112789481453"
 }
 `, configurableAttribute)
 }

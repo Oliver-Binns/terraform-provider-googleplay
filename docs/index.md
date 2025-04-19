@@ -14,7 +14,8 @@ Interact with Google Play Console
 
 ```terraform
 provider "googleplay" {
-  service_account_json = file("service_account.json")
+  service_account_json_base64 = filebase64("service_account.json")
+  developer_id                = "5166846112789481453"
 }
 ```
 
@@ -23,5 +24,7 @@ provider "googleplay" {
 
 ### Required
 
-- `service_account_json` (String, Sensitive) The service account JSON data used to authenticate with Google:
+- `developer_id` (String) Your unique 19-digit Google Play Developer account ID:
+				https://support.google.com/googleplay/android-developer/answer/13634081?hl=en-GB
+- `service_account_json_base64` (String, Sensitive) The service account JSON data used to authenticate with Google:
 				https://developers.google.com/android-publisher/getting_started#service-account
