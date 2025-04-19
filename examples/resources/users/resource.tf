@@ -1,4 +1,6 @@
-resource "google_play_console_user" "test" {
-  name  = "Oliver Binns"
+resource "googleplay_user" "test" {
   email = "test@oliverbinns.co.uk"
+  permissions = [
+    "CAN_MANAGE_PERMISSIONS_GLOBAL"
+  ]
 }
