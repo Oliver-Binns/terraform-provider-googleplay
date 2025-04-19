@@ -89,20 +89,16 @@ func log(err error, resp *provider.ConfigureResponse) {
 
 func (p *GooglePlayProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewExampleResource,
+		NewUserResource,
 	}
 }
 
 func (p *GooglePlayProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{
-		NewUserDataSource,
-	}
+	return []func() datasource.DataSource{}
 }
 
 func (p *GooglePlayProvider) Functions(ctx context.Context) []func() function.Function {
-	return []func() function.Function{
-		NewExampleFunction,
-	}
+	return []func() function.Function{}
 }
 
 func New(version string) func() provider.Provider {
