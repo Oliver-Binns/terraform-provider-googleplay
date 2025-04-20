@@ -25,7 +25,7 @@ func TestAccUserResource(t *testing.T) {
 			{
 				Config: testAccUserResourceConfig(
 					accountEmail,
-					`"CAN_SEE_ALL_APPS", "CAN_REPLY_TO_REVIEWS_GLOBAL"`,
+					`"CAN_VIEW_NON_FINANCIAL_DATA_GLOBAL", "CAN_REPLY_TO_REVIEWS_GLOBAL"`,
 				),
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
@@ -45,11 +45,16 @@ func TestAccUserResource(t *testing.T) {
 					),
 					statecheck.ExpectKnownValue(
 						"googleplay_user.oliver",
-						tfjsonpath.New("permissions"),
+						tfjsonpath.New("global_permissions"),
 						knownvalue.ListExact([]knownvalue.Check{
-							knownvalue.StringExact("CAN_SEE_ALL_APPS"),
 							knownvalue.StringExact("CAN_REPLY_TO_REVIEWS_GLOBAL"),
+							knownvalue.StringExact("CAN_VIEW_NON_FINANCIAL_DATA_GLOBAL"),
 						}),
+					),
+					statecheck.ExpectKnownValue(
+						"googleplay_user.oliver",
+						tfjsonpath.New("app_permissions"),
+						knownvalue.ListExact([]knownvalue.Check{}),
 					),
 				},
 			},
@@ -57,7 +62,7 @@ func TestAccUserResource(t *testing.T) {
 			{
 				Config: testAccUserResourceConfig(
 					accountEmail,
-					`"CAN_VIEW_NON_FINANCIAL_DATA_GLOBAL"`,
+					`"CAN_MANAGE_TRACK_USERS_GLOBAL"`,
 				),
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
@@ -77,10 +82,15 @@ func TestAccUserResource(t *testing.T) {
 					),
 					statecheck.ExpectKnownValue(
 						"googleplay_user.oliver",
-						tfjsonpath.New("permissions"),
+						tfjsonpath.New("global_permissions"),
 						knownvalue.ListExact([]knownvalue.Check{
-							knownvalue.StringExact("CAN_VIEW_NON_FINANCIAL_DATA_GLOBAL"),
+							knownvalue.StringExact("CAN_MANAGE_TRACK_USERS_GLOBAL"),
 						}),
+					),
+					statecheck.ExpectKnownValue(
+						"googleplay_user.oliver",
+						tfjsonpath.New("app_permissions"),
+						knownvalue.ListExact([]knownvalue.Check{}),
 					),
 				},
 			},
@@ -93,9 +103,10 @@ func testAccUserResourceConfig(accountEmail string, permissions string) string {
 	return fmt.Sprintf(`
 resource "googleplay_user" "oliver" {
   email = "%s"
-  permissions = [
+  global_permissions = [
     %s
   ]
+  app_permissions = []
 }
 
 provider "googleplay" {

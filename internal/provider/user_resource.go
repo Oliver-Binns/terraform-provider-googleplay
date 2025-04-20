@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -24,9 +26,15 @@ type UserResource struct {
 }
 
 type userResourceModel struct {
-	Name               types.String `tfsdk:"name"`
-	Email              types.String `tfsdk:"email"`
-	AccountPermissions types.List   `tfsdk:"permissions"`
+	Name              types.String     `tfsdk:"name"`
+	Email             types.String     `tfsdk:"email"`
+	GlobalPermissions types.Set        `tfsdk:"global_permissions"`
+	AppPermissions    []appPermissions `tfsdk:"app_permissions"`
+}
+
+type appPermissions struct {
+	AppID       types.String `tfsdk:"app_id"`
+	Permissions types.Set    `tfsdk:"permissions"`
 }
 
 func (r *UserResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -47,11 +55,24 @@ func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 				MarkdownDescription: "The email address for the user",
 				Required:            true,
 			},
-			"permissions": schema.ListAttribute{
+			"global_permissions": schema.SetAttribute{
 				MarkdownDescription: `Permissions for the user which apply across the developer account:
 				https://developers.google.com/android-publisher/api-ref/rest/v3/users#DeveloperLevelPermission`,
 				ElementType: types.StringType,
-				Required:    true,
+				Optional:    true,
+			},
+			"app_permissions": schema.SetAttribute{
+				MarkdownDescription: `Permissions for the user which apply for specific apps: 
+				https://developers.google.com/android-publisher/api-ref/rest/v3/grants`,
+				ElementType: types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"app_id": types.StringType,
+						"permissions": types.SetType{
+							ElemType: types.StringType,
+						},
+					},
+				},
+				Optional: true,
 			},
 		},
 	}
@@ -88,7 +109,7 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 
 	permissions := []users.DeveloperLevelPermission{}
-	diag := data.AccountPermissions.ElementsAs(ctx, &permissions, false)
+	diag := data.GlobalPermissions.ElementsAs(ctx, &permissions, false)
 	resp.Diagnostics.Append(diag...)
 
 	user, err := r.client.CreateUser(
@@ -106,6 +127,11 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	data.Name = types.StringValue(user.Name)
 	data.Email = types.StringValue(user.Email)
+
+	data.GlobalPermissions, diag = types.SetValueFrom(ctx, types.StringType, user.DeveloperAccountPermissions)
+	resp.Diagnostics.Append(diag...)
+
+	data.AppPermissions = r.getAppPermissions(ctx, resp.Diagnostics, user.Grants)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
@@ -147,6 +173,12 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		if user.Email == email {
 			data.Name = types.StringValue(user.Name)
 			data.Email = types.StringValue(user.Email)
+
+			var diag diag.Diagnostics
+			data.GlobalPermissions, diag = types.SetValueFrom(ctx, types.StringType, user.DeveloperAccountPermissions)
+			resp.Diagnostics.Append(diag...)
+
+			data.AppPermissions = r.getAppPermissions(ctx, resp.Diagnostics, user.Grants)
 			break
 		}
 	}
@@ -166,7 +198,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	}
 
 	permissions := []users.DeveloperLevelPermission{}
-	diag := data.AccountPermissions.ElementsAs(ctx, &permissions, false)
+	diag := data.GlobalPermissions.ElementsAs(ctx, &permissions, false)
 	resp.Diagnostics.Append(diag...)
 
 	user, err := r.client.UpdateUser(
@@ -185,8 +217,38 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	data.Email = types.StringValue(user.Email)
 	data.Name = types.StringValue(user.Name)
 
+	data.GlobalPermissions, diag = types.SetValueFrom(ctx, types.StringType, user.DeveloperAccountPermissions)
+	resp.Diagnostics.Append(diag...)
+
+	data.AppPermissions = r.getAppPermissions(ctx, resp.Diagnostics, user.Grants)
+
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *UserResource) getAppPermissions(
+	ctx context.Context,
+	diags diag.Diagnostics,
+	grants []users.Grant,
+) []appPermissions {
+	permissions := make([]appPermissions, len(grants))
+
+	for i, grant := range grants {
+		perms, diag := types.SetValueFrom(
+			ctx,
+			types.StringType,
+			grant.AppLevelPermissions,
+		)
+
+		diags.Append(diag...)
+
+		permissions[i] = appPermissions{
+			AppID:       types.StringValue(grant.Name),
+			Permissions: perms,
+		}
+	}
+
+	return permissions
 }
 
 func (r *UserResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
