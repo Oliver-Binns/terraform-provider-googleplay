@@ -45,6 +45,13 @@ func TestAccAppIAMResource(t *testing.T) {
 							knownvalue.StringExact("CAN_VIEW_APP_QUALITY"),
 						}),
 					),
+					statecheck.ExpectKnownValue(
+						"googleplay_app_iam.test_app",
+						tfjsonpath.New("expanded_permissions"),
+						knownvalue.SetExact([]knownvalue.Check{
+							knownvalue.StringExact("CAN_VIEW_APP_QUALITY"),
+						}),
+					),
 				},
 			},
 			// Test update permissions
@@ -68,6 +75,49 @@ func TestAccAppIAMResource(t *testing.T) {
 						"googleplay_app_iam.test_app",
 						tfjsonpath.New("permissions"),
 						knownvalue.SetExact([]knownvalue.Check{
+							knownvalue.StringExact("CAN_VIEW_NON_FINANCIAL_DATA"),
+							knownvalue.StringExact("CAN_VIEW_APP_QUALITY"),
+						}),
+					),
+					statecheck.ExpectKnownValue(
+						"googleplay_app_iam.test_app",
+						tfjsonpath.New("expanded_permissions"),
+						knownvalue.SetExact([]knownvalue.Check{
+							knownvalue.StringExact("CAN_VIEW_NON_FINANCIAL_DATA"),
+							knownvalue.StringExact("CAN_VIEW_APP_QUALITY"),
+						}),
+					),
+				},
+			},
+			// Test update permissions with implicit grant
+			{
+				Config: testAccAppIAMResourceConfig(
+					accountEmail,
+					`"CAN_REPLY_TO_REVIEWS"`,
+				),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"googleplay_app_iam.test_app",
+						tfjsonpath.New("app_id"),
+						knownvalue.StringExact("4973279986054171407"),
+					),
+					statecheck.ExpectKnownValue(
+						"googleplay_app_iam.test_app",
+						tfjsonpath.New("user_id"),
+						knownvalue.StringExact(accountEmail),
+					),
+					statecheck.ExpectKnownValue(
+						"googleplay_app_iam.test_app",
+						tfjsonpath.New("permissions"),
+						knownvalue.SetExact([]knownvalue.Check{
+							knownvalue.StringExact("CAN_REPLY_TO_REVIEWS"),
+						}),
+					),
+					statecheck.ExpectKnownValue(
+						"googleplay_app_iam.test_app",
+						tfjsonpath.New("expanded_permissions"),
+						knownvalue.SetExact([]knownvalue.Check{
+							knownvalue.StringExact("CAN_REPLY_TO_REVIEWS"),
 							knownvalue.StringExact("CAN_VIEW_NON_FINANCIAL_DATA"),
 							knownvalue.StringExact("CAN_VIEW_APP_QUALITY"),
 						}),

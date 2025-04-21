@@ -21,3 +21,8 @@ Manage app level access to the Google Play Console
 - `permissions` (Set of String) Permissions for the user which apply to this specific app:
 				https://developers.google.com/android-publisher/api-ref/rest/v3/grants#applevelpermission
 - `user_id` (String) The ID for the user: this is the email they use to login to Google Play
+
+### Read-Only
+
+- `expanded_permissions` (Set of String) Permissions for the user which apply to this specific app:
+				https://developers.google.com/android-publisher/api-ref/rest/v3/grants#applevelpermission
