@@ -24,7 +24,7 @@ provider "googleplay" {
 }
 ```
 
-### Managing Users
+### Managing users
 
 You can manage Google Play Console users as a Terraform resource (`googleplay_user`).
 
@@ -37,6 +37,25 @@ resource "googleplay_user" "oliver" {
   email = "example@oliverbinns.co.uk"
   global_permissions = ["CAN_SEE_ALL_APPS", "CAN_MANAGE_DRAFT_APPS_GLOBAL"]
   app_permissions = []
+}
+```
+
+### App specific permissions
+
+Users can be granted specific permissions to a particular app using the `googleplay_app_iam` resource.
+
+Each App IAM resource declares:
+- the email of the user who should be granted access 
+- the 19-digit app ID 
+- the set of permissions to be granted
+
+```tf
+resource "googleplay_app_iam" "test_app" {
+  app_id  = "0000000000000000000"
+  user_id = googleplay_user.oliver.email
+  permissions = [
+    "CAN_REPLY_TO_REVIEWS"
+  ]
 }
 ```
 
