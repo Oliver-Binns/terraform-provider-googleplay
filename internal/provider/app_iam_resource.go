@@ -3,12 +3,15 @@ package provider
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/oliver-binns/googleplay-go"
@@ -27,13 +30,10 @@ type AppIAMResource struct {
 }
 
 type appIAMResourceModel struct {
-	UserID      types.String `tfsdk:"user_id"`
-	AppID       types.String `tfsdk:"app_id"`
-	Permissions types.Set    `tfsdk:"permissions"`
-}
-
-func (m *appIAMResourceModel) Name(developerID string) string {
-	return fmt.Sprintf("developers/%s/users/%s/grants/%s", developerID, m.UserID, m.AppID)
+	UserID              types.String `tfsdk:"user_id"`
+	AppID               types.String `tfsdk:"app_id"`
+	Permissions         types.Set    `tfsdk:"permissions"`
+	ExpandedPermissions types.Set    `tfsdk:"expanded_permissions"`
 }
 
 func (r *AppIAMResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -49,16 +49,31 @@ func (r *AppIAMResource) Schema(ctx context.Context, req resource.SchemaRequest,
 			"user_id": schema.StringAttribute{
 				MarkdownDescription: "The ID for the user: this is the email they use to login to Google Play",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"app_id": schema.StringAttribute{
 				MarkdownDescription: "The app / package ID to grant access to",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"permissions": schema.SetAttribute{
 				MarkdownDescription: `Permissions for the user which apply to this specific app:
 				https://developers.google.com/android-publisher/api-ref/rest/v3/grants#applevelpermission`,
 				ElementType: types.StringType,
 				Required:    true,
+			},
+			"expanded_permissions": schema.SetAttribute{
+				MarkdownDescription: `Permissions for the user which apply to this specific app:
+				https://developers.google.com/android-publisher/api-ref/rest/v3/grants#applevelpermission`,
+				ElementType: types.StringType,
+				Computed:    true,
+				PlanModifiers: []planmodifier.Set{
+					expandAppPermissionsPlanModifier(path.Root("permissions")),
+				},
 			},
 		},
 	}
@@ -93,12 +108,31 @@ func (r *AppIAMResource) ValidateConfig(ctx context.Context, req resource.Valida
 		return
 	}
 
+	// Each grant must contain a valid permission
 	if len(data.Permissions.Elements()) == 0 {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("permissions"),
-			"Invalid Permissions Configuration",
+			"Invalid permissions configuration",
 			"permissions must contain at least one permission.",
 		)
+	}
+
+	// Warn user if they are using an implicit permission
+	permissions := []users.AppLevelPermission{}
+	diag := data.Permissions.ElementsAs(ctx, &permissions, false)
+	resp.Diagnostics.Append(diag...)
+	for _, permission := range permissions {
+		for _, inherited := range permission.Expand() {
+			if !slices.Contains(permissions, inherited) {
+				resp.Diagnostics.AddWarning(
+					"Granting implicit permission",
+					fmt.Sprintf(
+						"The permission '%s' is inherited from '%s', but it is not explicitly granted.",
+						inherited, permission,
+					),
+				)
+			}
+		}
 	}
 }
 
@@ -137,7 +171,7 @@ func (r *AppIAMResource) Create(ctx context.Context, req resource.CreateRequest,
 	data.UserID = types.StringValue(components[3])
 	data.AppID = types.StringValue(components[5])
 
-	data.Permissions, diag = types.SetValueFrom(ctx, types.StringType, grant.AppLevelPermissions)
+	data.ExpandedPermissions, diag = types.SetValueFrom(ctx, types.StringType, grant.AppLevelPermissions)
 	resp.Diagnostics.Append(diag...)
 
 	// Write logs using the tflog package
@@ -188,15 +222,15 @@ func (r *AppIAMResource) Read(ctx context.Context, req resource.ReadRequest, res
 	for _, user := range users {
 		if user.Email == userID {
 			for _, grant := range user.Grants {
-				if grant.Name == appID {
-					// App ID is actually:
-					// developers/DEVELOPER_ID/users/EMAIL/grants/APP_ID
-					components := strings.Split(grant.Name, "/")
+				// App ID is actually:
+				// developers/DEVELOPER_ID/users/EMAIL/grants/APP_ID
+				components := strings.Split(grant.Name, "/")
+				if components[5] == appID {
 					data.UserID = types.StringValue(components[3])
 					data.AppID = types.StringValue(components[5])
 
 					var diag diag.Diagnostics
-					data.Permissions, diag = types.SetValueFrom(ctx, types.StringType, grant.AppLevelPermissions)
+					data.ExpandedPermissions, diag = types.SetValueFrom(ctx, types.StringType, grant.AppLevelPermissions)
 					resp.Diagnostics.Append(diag...)
 					break
 				}
@@ -244,7 +278,7 @@ func (r *AppIAMResource) Update(ctx context.Context, req resource.UpdateRequest,
 	data.UserID = types.StringValue(components[3])
 	data.AppID = types.StringValue(components[5])
 
-	data.Permissions, diag = types.SetValueFrom(ctx, types.StringType, grant.AppLevelPermissions)
+	data.ExpandedPermissions, diag = types.SetValueFrom(ctx, types.StringType, grant.AppLevelPermissions)
 	resp.Diagnostics.Append(diag...)
 
 	// Save updated data into Terraform state
