@@ -36,10 +36,6 @@ type appIAMResourceModel struct {
 	ExpandedPermissions types.Set    `tfsdk:"expanded_permissions"`
 }
 
-func (m *appIAMResourceModel) Name(developerID string) string {
-	return fmt.Sprintf("developers/%s/users/%s/grants/%s", developerID, m.UserID, m.AppID)
-}
-
 func (r *AppIAMResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_app_iam"
 }
@@ -226,15 +222,15 @@ func (r *AppIAMResource) Read(ctx context.Context, req resource.ReadRequest, res
 	for _, user := range users {
 		if user.Email == userID {
 			for _, grant := range user.Grants {
-				if grant.Name == appID {
-					// App ID is actually:
-					// developers/DEVELOPER_ID/users/EMAIL/grants/APP_ID
-					components := strings.Split(grant.Name, "/")
+				// App ID is actually:
+				// developers/DEVELOPER_ID/users/EMAIL/grants/APP_ID
+				components := strings.Split(grant.Name, "/")
+				if components[5] == appID {
 					data.UserID = types.StringValue(components[3])
 					data.AppID = types.StringValue(components[5])
 
 					var diag diag.Diagnostics
-					data.Permissions, diag = types.SetValueFrom(ctx, types.StringType, grant.AppLevelPermissions)
+					data.ExpandedPermissions, diag = types.SetValueFrom(ctx, types.StringType, grant.AppLevelPermissions)
 					resp.Diagnostics.Append(diag...)
 					break
 				}
