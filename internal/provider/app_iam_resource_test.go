@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
-func TestAccUserResource(t *testing.T) {
+func TestAccAppIAMResource(t *testing.T) {
 	accountEmail := fmt.Sprintf(
 		"%s@oliverbinns.co.uk",
 		uuid.New().String(),
@@ -23,63 +23,53 @@ func TestAccUserResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and read testing
 			{
-				Config: testAccUserResourceConfig(
+				Config: testAccAppIAMResourceConfig(
 					accountEmail,
-					`"CAN_VIEW_NON_FINANCIAL_DATA_GLOBAL", "CAN_REPLY_TO_REVIEWS_GLOBAL"`,
+					`"CAN_VIEW_APP_QUALITY"`,
 				),
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
-						"googleplay_user.oliver",
-						tfjsonpath.New("email"),
+						"googleplay_app_iam.test_app",
+						tfjsonpath.New("app_id"),
+						knownvalue.StringExact("4973279986054171407"),
+					),
+					statecheck.ExpectKnownValue(
+						"googleplay_app_iam.test_app",
+						tfjsonpath.New("user_id"),
 						knownvalue.StringExact(accountEmail),
 					),
 					statecheck.ExpectKnownValue(
-						"googleplay_user.oliver",
-						tfjsonpath.New("name"),
-						knownvalue.StringExact(
-							fmt.Sprintf(
-								"developers/5166846112789481453/users/%s",
-								accountEmail,
-							),
-						),
-					),
-					statecheck.ExpectKnownValue(
-						"googleplay_user.oliver",
-						tfjsonpath.New("global_permissions"),
+						"googleplay_app_iam.test_app",
+						tfjsonpath.New("permissions"),
 						knownvalue.SetExact([]knownvalue.Check{
-							knownvalue.StringExact("CAN_REPLY_TO_REVIEWS_GLOBAL"),
-							knownvalue.StringExact("CAN_VIEW_NON_FINANCIAL_DATA_GLOBAL"),
+							knownvalue.StringExact("CAN_VIEW_APP_QUALITY"),
 						}),
 					),
 				},
 			},
-			// Test update global permissions
+			// Test update permissions
 			{
-				Config: testAccUserResourceConfig(
+				Config: testAccAppIAMResourceConfig(
 					accountEmail,
-					`"CAN_MANAGE_TRACK_USERS_GLOBAL"`,
+					`"CAN_VIEW_APP_QUALITY", "CAN_VIEW_NON_FINANCIAL_DATA"`,
 				),
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
-						"googleplay_user.oliver",
-						tfjsonpath.New("email"),
+						"googleplay_app_iam.test_app",
+						tfjsonpath.New("app_id"),
+						knownvalue.StringExact("4973279986054171407"),
+					),
+					statecheck.ExpectKnownValue(
+						"googleplay_app_iam.test_app",
+						tfjsonpath.New("user_id"),
 						knownvalue.StringExact(accountEmail),
 					),
 					statecheck.ExpectKnownValue(
-						"googleplay_user.oliver",
-						tfjsonpath.New("name"),
-						knownvalue.StringExact(
-							fmt.Sprintf(
-								"developers/5166846112789481453/users/%s",
-								accountEmail,
-							),
-						),
-					),
-					statecheck.ExpectKnownValue(
-						"googleplay_user.oliver",
-						tfjsonpath.New("global_permissions"),
+						"googleplay_app_iam.test_app",
+						tfjsonpath.New("permissions"),
 						knownvalue.SetExact([]knownvalue.Check{
-							knownvalue.StringExact("CAN_MANAGE_TRACK_USERS_GLOBAL"),
+							knownvalue.StringExact("CAN_VIEW_NON_FINANCIAL_DATA"),
+							knownvalue.StringExact("CAN_VIEW_APP_QUALITY"),
 						}),
 					),
 				},
@@ -89,11 +79,19 @@ func TestAccUserResource(t *testing.T) {
 	})
 }
 
-func testAccUserResourceConfig(accountEmail string, permissions string) string {
+func testAccAppIAMResourceConfig(email string, permissions string) string {
 	return fmt.Sprintf(`
-resource "googleplay_user" "oliver" {
+resource "googleplay_user" "test" {
   email = "%s"
   global_permissions = [
+  	"CAN_EDIT_GAMES_GLOBAL"
+  ]
+}
+
+resource "googleplay_app_iam" "test_app" {
+  app_id = "4973279986054171407"
+  user_id = googleplay_user.test.email
+  permissions = [
     %s
   ]
 }
@@ -101,5 +99,5 @@ resource "googleplay_user" "oliver" {
 provider "googleplay" {
   service_account_json_base64 = filebase64("~/service-account.json")
   developer_id = "5166846112789481453"
-}`, accountEmail, permissions)
+}`, email, permissions)
 }

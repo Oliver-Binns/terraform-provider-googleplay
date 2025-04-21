@@ -90,6 +90,7 @@ func log(err error, resp *provider.ConfigureResponse) {
 func (p *GooglePlayProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewUserResource,
+		NewAppIAMResource,
 	}
 }
 

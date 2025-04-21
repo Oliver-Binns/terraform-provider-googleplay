@@ -21,19 +21,9 @@ Manage user accounts in the Google Play Console
 
 ### Optional
 
-- `app_permissions` (Set of Object) Permissions for the user which apply for specific apps: 
-				https://developers.google.com/android-publisher/api-ref/rest/v3/grants (see [below for nested schema](#nestedatt--app_permissions))
 - `global_permissions` (Set of String) Permissions for the user which apply across the developer account:
 				https://developers.google.com/android-publisher/api-ref/rest/v3/users#DeveloperLevelPermission
 
 ### Read-Only
 
 - `name` (String) The name of the user
-
-<a id="nestedatt--app_permissions"></a>
-### Nested Schema for `app_permissions`
-
-Optional:
-
-- `app_id` (String)
-- `permissions` (Set of String)
