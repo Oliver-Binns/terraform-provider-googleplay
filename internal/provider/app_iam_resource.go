@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -15,6 +16,7 @@ import (
 )
 
 var _ resource.Resource = &AppIAMResource{}
+var _ resource.ResourceWithValidateConfig = &AppIAMResource{}
 
 func NewAppIAMResource() resource.Resource {
 	return &AppIAMResource{}
@@ -80,6 +82,24 @@ func (r *AppIAMResource) Configure(ctx context.Context, req resource.ConfigureRe
 	}
 
 	r.client = client
+}
+
+func (r *AppIAMResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var data appIAMResourceModel
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if len(data.Permissions.Elements()) == 0 {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("permissions"),
+			"Invalid Permissions Configuration",
+			"permissions must contain at least one permission.",
+		)
+	}
 }
 
 func (r *AppIAMResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

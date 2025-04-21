@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -15,6 +16,7 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &UserResource{}
+var _ resource.ResourceWithValidateConfig = &UserResource{}
 
 func NewUserResource() resource.Resource {
 	return &UserResource{}
@@ -76,6 +78,24 @@ func (r *UserResource) Configure(ctx context.Context, req resource.ConfigureRequ
 	}
 
 	r.client = client
+}
+
+func (r *UserResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var data userResourceModel
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if len(data.GlobalPermissions.Elements()) == 0 {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("global_permissions"),
+			"Invalid Global Permissions Configuration",
+			"global_permissions must contain at least one permission.",
+		)
+	}
 }
 
 func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
