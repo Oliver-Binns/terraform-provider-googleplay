@@ -35,10 +35,10 @@ A set of [Developer Account permissions](https://developers.google.com/android-p
 ```tf
 resource "googleplay_user" "oliver" {
   email = "example@oliverbinns.co.uk"
-  permissions = ["CAN_SEE_ALL_APPS", "CAN_MANAGE_DRAFT_APPS_GLOBAL"]
+  global_permissions = ["CAN_SEE_ALL_APPS", "CAN_MANAGE_DRAFT_APPS_GLOBAL"]
+  app_permissions = []
 }
 ```
-
 
 ## Contributing
 

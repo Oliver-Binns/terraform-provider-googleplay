@@ -18,7 +18,10 @@ Manage user accounts in the Google Play Console
 ### Required
 
 - `email` (String) The email address for the user
-- `permissions` (List of String) Permissions for the user which apply across the developer account:
+
+### Optional
+
+- `global_permissions` (Set of String) Permissions for the user which apply across the developer account:
 				https://developers.google.com/android-publisher/api-ref/rest/v3/users#DeveloperLevelPermission
 
 ### Read-Only

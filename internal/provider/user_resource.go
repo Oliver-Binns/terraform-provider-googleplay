@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -14,6 +16,7 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &UserResource{}
+var _ resource.ResourceWithValidateConfig = &UserResource{}
 
 func NewUserResource() resource.Resource {
 	return &UserResource{}
@@ -24,9 +27,9 @@ type UserResource struct {
 }
 
 type userResourceModel struct {
-	Name               types.String `tfsdk:"name"`
-	Email              types.String `tfsdk:"email"`
-	AccountPermissions types.List   `tfsdk:"permissions"`
+	Name              types.String `tfsdk:"name"`
+	Email             types.String `tfsdk:"email"`
+	GlobalPermissions types.Set    `tfsdk:"global_permissions"`
 }
 
 func (r *UserResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -47,11 +50,11 @@ func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 				MarkdownDescription: "The email address for the user",
 				Required:            true,
 			},
-			"permissions": schema.ListAttribute{
+			"global_permissions": schema.SetAttribute{
 				MarkdownDescription: `Permissions for the user which apply across the developer account:
 				https://developers.google.com/android-publisher/api-ref/rest/v3/users#DeveloperLevelPermission`,
 				ElementType: types.StringType,
-				Required:    true,
+				Optional:    true,
 			},
 		},
 	}
@@ -77,6 +80,24 @@ func (r *UserResource) Configure(ctx context.Context, req resource.ConfigureRequ
 	r.client = client
 }
 
+func (r *UserResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var data userResourceModel
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if len(data.GlobalPermissions.Elements()) == 0 {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("global_permissions"),
+			"Invalid Global Permissions Configuration",
+			"global_permissions must contain at least one permission.",
+		)
+	}
+}
+
 func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data userResourceModel
 
@@ -88,7 +109,7 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 
 	permissions := []users.DeveloperLevelPermission{}
-	diag := data.AccountPermissions.ElementsAs(ctx, &permissions, false)
+	diag := data.GlobalPermissions.ElementsAs(ctx, &permissions, false)
 	resp.Diagnostics.Append(diag...)
 
 	user, err := r.client.CreateUser(
@@ -106,6 +127,9 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	data.Name = types.StringValue(user.Name)
 	data.Email = types.StringValue(user.Email)
+
+	data.GlobalPermissions, diag = types.SetValueFrom(ctx, types.StringType, user.DeveloperAccountPermissions)
+	resp.Diagnostics.Append(diag...)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
@@ -147,6 +171,10 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		if user.Email == email {
 			data.Name = types.StringValue(user.Name)
 			data.Email = types.StringValue(user.Email)
+
+			var diag diag.Diagnostics
+			data.GlobalPermissions, diag = types.SetValueFrom(ctx, types.StringType, user.DeveloperAccountPermissions)
+			resp.Diagnostics.Append(diag...)
 			break
 		}
 	}
@@ -166,7 +194,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	}
 
 	permissions := []users.DeveloperLevelPermission{}
-	diag := data.AccountPermissions.ElementsAs(ctx, &permissions, false)
+	diag := data.GlobalPermissions.ElementsAs(ctx, &permissions, false)
 	resp.Diagnostics.Append(diag...)
 
 	user, err := r.client.UpdateUser(
@@ -185,6 +213,9 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	data.Email = types.StringValue(user.Email)
 	data.Name = types.StringValue(user.Name)
 
+	data.GlobalPermissions, diag = types.SetValueFrom(ctx, types.StringType, user.DeveloperAccountPermissions)
+	resp.Diagnostics.Append(diag...)
+
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -201,7 +232,7 @@ func (r *UserResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 
 	err := r.client.DeleteUser(data.Email.ValueString(), ctx)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update example, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete user, got error: %s", err))
 		return
 	}
 }
