@@ -10,25 +10,25 @@ import (
 	"github.com/oliver-binns/googleplay-go/users"
 )
 
-func expandAppPermissionsPlanModifier(permissions path.Path) planmodifier.Set {
-	return &appPermissionsExpansionModifier{
+func expandUserPermissionsPlanModifier(permissions path.Path) planmodifier.Set {
+	return &userPermissionsExpansionModifier{
 		permissions: permissions,
 	}
 }
 
-type appPermissionsExpansionModifier struct {
+type userPermissionsExpansionModifier struct {
 	permissions path.Path
 }
 
-func (m *appPermissionsExpansionModifier) Description(ctx context.Context) string {
-	return "Expands app-specific Google Play Permissions to include implicitly granted permissions"
+func (m *userPermissionsExpansionModifier) Description(ctx context.Context) string {
+	return "Expands Google Play Permissions for users to include implicitly granted permissions"
 }
 
-func (m *appPermissionsExpansionModifier) MarkdownDescription(ctx context.Context) string {
-	return "Expands app-specific Google Play Permissions to include implicitly granted permissions"
+func (m *userPermissionsExpansionModifier) MarkdownDescription(ctx context.Context) string {
+	return "Expands Google Play Permissions for users to include implicitly granted permissions"
 }
 
-func (m *appPermissionsExpansionModifier) PlanModifySet(
+func (m *userPermissionsExpansionModifier) PlanModifySet(
 	ctx context.Context,
 	req planmodifier.SetRequest,
 	resp *planmodifier.SetResponse,
@@ -38,7 +38,7 @@ func (m *appPermissionsExpansionModifier) PlanModifySet(
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, m.permissions, &permissions)...)
 
 	// expand the permissions
-	expanded_permissions := []users.AppLevelPermission{}
+	expanded_permissions := []users.DeveloperLevelPermission{}
 	diag := req.PlanValue.ElementsAs(ctx, &permissions, false)
 	resp.Diagnostics.Append(diag...)
 

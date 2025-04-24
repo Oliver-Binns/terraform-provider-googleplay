@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/oliver-binns/googleplay-go"
@@ -27,9 +29,10 @@ type UserResource struct {
 }
 
 type userResourceModel struct {
-	Name              types.String `tfsdk:"name"`
-	Email             types.String `tfsdk:"email"`
-	GlobalPermissions types.Set    `tfsdk:"global_permissions"`
+	Name                types.String `tfsdk:"name"`
+	Email               types.String `tfsdk:"email"`
+	GlobalPermissions   types.Set    `tfsdk:"global_permissions"`
+	ExpandedPermissions types.Set    `tfsdk:"expanded_permissions"`
 }
 
 func (r *UserResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -49,12 +52,24 @@ func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"email": schema.StringAttribute{
 				MarkdownDescription: "The email address for the user",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"global_permissions": schema.SetAttribute{
 				MarkdownDescription: `Permissions for the user which apply across the developer account:
 				https://developers.google.com/android-publisher/api-ref/rest/v3/users#DeveloperLevelPermission`,
 				ElementType: types.StringType,
 				Optional:    true,
+			},
+			"expanded_permissions": schema.SetAttribute{
+				MarkdownDescription: `Permissions for the user which apply to this specific app:
+				https://developers.google.com/android-publisher/api-ref/rest/v3/grants#applevelpermission`,
+				ElementType: types.StringType,
+				Computed:    true,
+				PlanModifiers: []planmodifier.Set{
+					expandUserPermissionsPlanModifier(path.Root("global_permissions")),
+				},
 			},
 		},
 	}
@@ -128,7 +143,7 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 	data.Name = types.StringValue(user.Name)
 	data.Email = types.StringValue(user.Email)
 
-	data.GlobalPermissions, diag = types.SetValueFrom(ctx, types.StringType, user.DeveloperAccountPermissions)
+	data.ExpandedPermissions, diag = types.SetValueFrom(ctx, types.StringType, user.DeveloperAccountPermissions)
 	resp.Diagnostics.Append(diag...)
 
 	// Write logs using the tflog package
@@ -173,7 +188,7 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 			data.Email = types.StringValue(user.Email)
 
 			var diag diag.Diagnostics
-			data.GlobalPermissions, diag = types.SetValueFrom(ctx, types.StringType, user.DeveloperAccountPermissions)
+			data.ExpandedPermissions, diag = types.SetValueFrom(ctx, types.StringType, user.DeveloperAccountPermissions)
 			resp.Diagnostics.Append(diag...)
 			break
 		}
@@ -213,7 +228,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	data.Email = types.StringValue(user.Email)
 	data.Name = types.StringValue(user.Name)
 
-	data.GlobalPermissions, diag = types.SetValueFrom(ctx, types.StringType, user.DeveloperAccountPermissions)
+	data.ExpandedPermissions, diag = types.SetValueFrom(ctx, types.StringType, user.DeveloperAccountPermissions)
 	resp.Diagnostics.Append(diag...)
 
 	// Save updated data into Terraform state
