@@ -26,4 +26,6 @@ Manage user accounts in the Google Play Console
 
 ### Read-Only
 
+- `expanded_permissions` (Set of String) Permissions for the user which apply to this specific app:
+				https://developers.google.com/android-publisher/api-ref/rest/v3/grants#applevelpermission
 - `name` (String) The name of the user

@@ -77,9 +77,62 @@ func TestAccUserResource(t *testing.T) {
 					),
 					statecheck.ExpectKnownValue(
 						"googleplay_user.oliver",
-						tfjsonpath.New("global_permissions"),
+						tfjsonpath.New("expanded_permissions"),
 						knownvalue.SetExact([]knownvalue.Check{
 							knownvalue.StringExact("CAN_MANAGE_TRACK_USERS_GLOBAL"),
+						}),
+					),
+				},
+			},
+			// Test update global permissions with implicit grant
+			{
+				Config: testAccUserResourceConfig(
+					accountEmail,
+					`"CAN_MANAGE_PERMISSIONS_GLOBAL"`,
+				),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"googleplay_user.oliver",
+						tfjsonpath.New("email"),
+						knownvalue.StringExact(accountEmail),
+					),
+					statecheck.ExpectKnownValue(
+						"googleplay_user.oliver",
+						tfjsonpath.New("name"),
+						knownvalue.StringExact(
+							fmt.Sprintf(
+								"developers/5166846112789481453/users/%s",
+								accountEmail,
+							),
+						),
+					),
+					statecheck.ExpectKnownValue(
+						"googleplay_user.oliver",
+						tfjsonpath.New("global_permissions"),
+						knownvalue.SetExact([]knownvalue.Check{
+							knownvalue.StringExact("CAN_MANAGE_PERMISSIONS_GLOBAL"),
+						}),
+					),
+					statecheck.ExpectKnownValue(
+						"googleplay_user.oliver",
+						tfjsonpath.New("expanded_permissions"),
+						knownvalue.SetExact([]knownvalue.Check{
+							knownvalue.StringExact("CAN_VIEW_FINANCIAL_DATA_GLOBAL"),
+							knownvalue.StringExact("CAN_MANAGE_PERMISSIONS_GLOBAL"),
+							knownvalue.StringExact("CAN_EDIT_GAMES_GLOBAL"),
+							knownvalue.StringExact("CAN_PUBLISH_GAMES_GLOBAL"),
+							knownvalue.StringExact("CAN_REPLY_TO_REVIEWS_GLOBAL"),
+							knownvalue.StringExact("CAN_MANAGE_PUBLIC_APKS_GLOBAL"),
+							knownvalue.StringExact("CAN_MANAGE_TRACK_APKS_GLOBAL"),
+							knownvalue.StringExact("CAN_MANAGE_TRACK_USERS_GLOBAL"),
+							knownvalue.StringExact("CAN_MANAGE_PUBLIC_LISTING_GLOBAL"),
+							knownvalue.StringExact("CAN_MANAGE_DRAFT_APPS_GLOBAL"),
+							knownvalue.StringExact("CAN_CREATE_MANAGED_PLAY_APPS_GLOBAL"),
+							knownvalue.StringExact("CAN_MANAGE_ORDERS_GLOBAL"),
+							knownvalue.StringExact("CAN_MANAGE_APP_CONTENT_GLOBAL"),
+							knownvalue.StringExact("CAN_VIEW_NON_FINANCIAL_DATA_GLOBAL"),
+							knownvalue.StringExact("CAN_VIEW_APP_QUALITY_GLOBAL"),
+							knownvalue.StringExact("CAN_MANAGE_DEEPLINKS_GLOBAL"),
 						}),
 					),
 				},
