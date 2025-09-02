@@ -4,7 +4,7 @@
 
 This repository is a [Terraform](https://www.terraform.io) provider for managing resources in the [Google Play Console](https://developers.google.com/android-publisher/api-ref/rest).
 
-This project is still a work-in-progress and is therefore not yet [published on the Terraform Registry](https://developer.hashicorp.com/terraform/registry/providers/publishing).
+This project is [available on the Terraform Registry](https://registry.terraform.io/providers/Oliver-Binns/googleplay/latest).
 
 ## Usage
 
