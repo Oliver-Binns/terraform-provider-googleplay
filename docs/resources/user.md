@@ -28,4 +28,5 @@ Manage user accounts in the Google Play Console
 
 - `expanded_permissions` (Set of String) Permissions for the user which apply to this specific app:
 				https://developers.google.com/android-publisher/api-ref/rest/v3/grants#applevelpermission
+- `id` (String) The ID of the user, which is their email address.
 - `name` (String) The name of the user
