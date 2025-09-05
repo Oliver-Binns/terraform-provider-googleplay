@@ -53,6 +53,15 @@ func TestAccUserResource(t *testing.T) {
 					),
 				},
 			},
+			// ImportState testing
+			{
+				ResourceName:      "googleplay_user.oliver",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"global_permissions",
+				},
+			},
 			// Test update global permissions
 			{
 				Config: testAccUserResourceConfig(

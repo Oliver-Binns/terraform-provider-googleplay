@@ -19,6 +19,7 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &UserResource{}
 var _ resource.ResourceWithValidateConfig = &UserResource{}
+var _ resource.ResourceWithImportState = &UserResource{}
 
 func NewUserResource() resource.Resource {
 	return &UserResource{}
@@ -29,6 +30,7 @@ type UserResource struct {
 }
 
 type userResourceModel struct {
+	ID                  types.String `tfsdk:"id"`
 	Name                types.String `tfsdk:"name"`
 	Email               types.String `tfsdk:"email"`
 	GlobalPermissions   types.Set    `tfsdk:"global_permissions"`
@@ -45,6 +47,10 @@ func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 		MarkdownDescription: "Manage user accounts in the Google Play Console",
 
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				MarkdownDescription: "The ID of the user, which is their email address.",
+				Computed:            true,
+			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: "The name of the user",
 				Computed:            true,
@@ -113,6 +119,11 @@ func (r *UserResource) ValidateConfig(ctx context.Context, req resource.Validate
 	}
 }
 
+func (r *UserResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Retrieve import ID and save to email attribute
+	resource.ImportStatePassthroughID(ctx, path.Root("email"), req, resp)
+}
+
 func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data userResourceModel
 
@@ -140,6 +151,7 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
+	data.ID = types.StringValue(user.Email)
 	data.Name = types.StringValue(user.Name)
 	data.Email = types.StringValue(user.Email)
 
@@ -184,6 +196,7 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	for _, user := range users {
 		if user.Email == email {
+			data.ID = types.StringValue(user.Email)
 			data.Name = types.StringValue(user.Name)
 			data.Email = types.StringValue(user.Email)
 
@@ -225,6 +238,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
+	data.ID = types.StringValue(user.Email)
 	data.Email = types.StringValue(user.Email)
 	data.Name = types.StringValue(user.Name)
 
