@@ -19,6 +19,7 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &UserResource{}
 var _ resource.ResourceWithValidateConfig = &UserResource{}
+var _ resource.ResourceWithImportState = &UserResource{}
 
 func NewUserResource() resource.Resource {
 	return &UserResource{}
@@ -111,6 +112,11 @@ func (r *UserResource) ValidateConfig(ctx context.Context, req resource.Validate
 			"global_permissions must contain at least one permission.",
 		)
 	}
+}
+
+func (r *UserResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Retrieve import ID and save to email attribute
+	resource.ImportStatePassthroughID(ctx, path.Root("email"), req, resp)
 }
 
 func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
