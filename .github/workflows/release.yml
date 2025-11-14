@@ -15,7 +15,7 @@ concurrency:
 jobs:
   determine_increment:
     name: Create GitHub tag
-    runs-on: macos-15
+    runs-on: macos-26
     outputs:
       should_release: ${{ steps.versioning.outputs.release_version }}
 

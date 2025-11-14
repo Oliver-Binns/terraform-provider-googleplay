@@ -13,7 +13,7 @@ jobs:
   build:
     name: Validate Pull Request
     if: github.event.pull_request.draft == false
-    runs-on: macos-15
+    runs-on: macos-26
 
     steps:
       - name: Add Path Globally
@@ -21,6 +21,6 @@ jobs:
 
       - name: Validate Pull Request Name
         id: versioning
-        uses: Oliver-Binns/Versioning@main
+        uses: Oliver-Binns/Versioning@b6152639f8a9674571ba9794e27a47e2593ceb43 # 1.3.3
         with:
           ACTION_TYPE: 'Validate'
