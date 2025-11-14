@@ -21,6 +21,6 @@ jobs:
 
       - name: Validate Pull Request Name
         id: versioning
-        uses: Oliver-Binns/Versioning@main
+        uses: Oliver-Binns/Versioning@b6152639f8a9674571ba9794e27a47e2593ceb43 # 1.3.3
         with:
           ACTION_TYPE: 'Validate'
