@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"encoding/base64"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/function"
@@ -41,7 +42,7 @@ func (p *GooglePlayProvider) Schema(ctx context.Context, req provider.SchemaRequ
 			"service_account_json_base64": schema.StringAttribute{
 				MarkdownDescription: `The service account JSON data used to authenticate with Google:
 				https://developers.google.com/android-publisher/getting_started#service-account`,
-				Required:  true,
+				Optional:  true,
 				Sensitive: true,
 			},
 			"developer_id": schema.StringAttribute{
@@ -63,9 +64,18 @@ func (p *GooglePlayProvider) Configure(ctx context.Context, req provider.Configu
 		return
 	}
 
-	serviceAccountBase64 := data.ServiceAccountJson.ValueString()
-	rawJson, err := base64.StdEncoding.DecodeString(serviceAccountBase64)
-	log(err, resp)
+	var rawJson []byte
+	var err error
+
+	google_credentials := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	if google_credentials != "" {
+		rawJson, err = os.ReadFile(google_credentials)
+		log(err, resp)
+	} else {
+		serviceAccountBase64 := data.ServiceAccountJson.ValueString()
+		rawJson, err = base64.StdEncoding.DecodeString(serviceAccountBase64)
+		log(err, resp)
+	}
 
 	developerID := data.DeveloperID.ValueString()
 
