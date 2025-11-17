@@ -14,6 +14,7 @@ on:
 # Testing only needs permissions to read the repository contents.
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   # Ensure project builds before running testing matrix
@@ -70,6 +71,11 @@ jobs:
           - '1.4.*'
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: 'google-github-actions/auth@v3'
+        with:
+          project_id: 'seraphic-elixir-305011'
+          workload_identity_provider: 'projects/411628404798/locations/global/workloadIdentityPools/tf-test/providers/github-actions'
+          service_account: 'tf-test@seraphic-elixir-305011.iam.gserviceaccount.com'
       - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
           go-version-file: 'go.mod'
@@ -79,15 +85,7 @@ jobs:
           terraform_version: ${{ matrix.terraform }}
           terraform_wrapper: false
       - run: go mod download
-      - name: Create service-account.json
-        env:
-          GOOGLE_SERVICE_ACCOUNT_JSON_BASE64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 }}
-        run: |
-          echo $GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 | base64 --decode > ~/service-account.json
       - env:
           TF_ACC: "1"
         run: go test -v -cover ./internal/provider/
         timeout-minutes: 10
-      - name: Clean-up
-        if: always()
-        run: rm ~/service-account.json
