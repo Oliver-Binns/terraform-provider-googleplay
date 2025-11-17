@@ -41,7 +41,7 @@ func (p *GooglePlayProvider) Schema(ctx context.Context, req provider.SchemaRequ
 			"service_account_json_base64": schema.StringAttribute{
 				MarkdownDescription: `The service account JSON data used to authenticate with Google:
 				https://developers.google.com/android-publisher/getting_started#service-account`,
-				Required:  true,
+				Optional:  true,
 				Sensitive: true,
 			},
 			"developer_id": schema.StringAttribute{
