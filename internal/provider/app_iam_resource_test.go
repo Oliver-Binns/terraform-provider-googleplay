@@ -147,7 +147,6 @@ resource "googleplay_app_iam" "test_app" {
 }
 
 provider "googleplay" {
-  service_account_json_base64 = filebase64("~/service-account.json")
   developer_id = "5166846112789481453"
 }`, email, permissions)
 }
