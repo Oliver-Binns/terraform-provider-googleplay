@@ -74,8 +74,8 @@ jobs:
       - uses: 'google-github-actions/auth@v3'
         with:
           project_id: 'seraphic-elixir-305011'
-          workload_identity_provider: 'projects/411628404798/locations/global/workloadIdentityPools/tf-test/providers/github-actions'
-          service_account: 'tf-test@seraphic-elixir-305011.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/411628404798/locations/global/workloadIdentityPools/terraform-provider-googleplay/providers/github-actions'
+          service_account: 'terraform-provider-googleplay@seraphic-elixir-305011.iam.gserviceaccount.com'
       - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
         with:
           go-version-file: 'go.mod'
