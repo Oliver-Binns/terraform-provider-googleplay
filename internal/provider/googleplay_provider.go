@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/oliver-binns/googleplay-go"
-	auth "golang.org/x/oauth2/google"
 )
 
 var _ provider.Provider = &GooglePlayProvider{}
@@ -85,16 +84,12 @@ func (p *GooglePlayProvider) Configure(ctx context.Context, req provider.Configu
 		resp.ResourceData = client
 	} else if google_credentials != "" {
 		tflog.Info(ctx, "Using service account from GOOGLE_APPLICATION_CREDENTIALS environment variable")
-		credentials, err := auth.FindDefaultCredentials(context.Background())
-		log(err, resp)
 
-		token, err := credentials.TokenSource.Token()
-		log(err, resp)
-
-		client := googleplay.GooglePlayClientWithToken(
+		client := googleplay.GooglePlayDefaultClient(
 			developerID,
-			token.AccessToken,
 		)
+
+		tflog.Info(ctx, "created client successfully")
 
 		resp.DataSourceData = client
 		resp.ResourceData = client
