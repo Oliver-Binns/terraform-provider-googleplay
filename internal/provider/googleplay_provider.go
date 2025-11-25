@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"encoding/base64"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/function"
@@ -10,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/oliver-binns/googleplay-go"
 )
@@ -41,7 +43,7 @@ func (p *GooglePlayProvider) Schema(ctx context.Context, req provider.SchemaRequ
 			"service_account_json_base64": schema.StringAttribute{
 				MarkdownDescription: `The service account JSON data used to authenticate with Google:
 				https://developers.google.com/android-publisher/getting_started#service-account`,
-				Required:  true,
+				Optional:  true,
 				Sensitive: true,
 			},
 			"developer_id": schema.StringAttribute{
@@ -63,18 +65,42 @@ func (p *GooglePlayProvider) Configure(ctx context.Context, req provider.Configu
 		return
 	}
 
-	serviceAccountBase64 := data.ServiceAccountJson.ValueString()
-	rawJson, err := base64.StdEncoding.DecodeString(serviceAccountBase64)
-	log(err, resp)
-
 	developerID := data.DeveloperID.ValueString()
 
-	client := googleplay.GooglePlayClient(
-		developerID,
-		string(rawJson),
-	)
-	resp.DataSourceData = client
-	resp.ResourceData = client
+	google_credentials := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
+	if !data.ServiceAccountJson.IsNull() && !data.ServiceAccountJson.IsUnknown() {
+		tflog.Info(ctx, "Using service account from provider configuration")
+
+		serviceAccountBase64 := data.ServiceAccountJson.ValueString()
+		rawJson, err := base64.StdEncoding.DecodeString(serviceAccountBase64)
+		log(err, resp)
+
+		client := googleplay.GooglePlayClient(
+			developerID,
+			string(rawJson),
+		)
+		resp.DataSourceData = client
+		resp.ResourceData = client
+	} else if google_credentials != "" {
+		tflog.Info(ctx, "Using service account from GOOGLE_APPLICATION_CREDENTIALS environment variable")
+
+		client := googleplay.GooglePlayDefaultClient(
+			developerID,
+		)
+
+		tflog.Info(ctx, "created client successfully")
+
+		resp.DataSourceData = client
+		resp.ResourceData = client
+
+	} else {
+		resp.Diagnostics.AddError(
+			"Missing service account JSON",
+			"Please either provide service account credentials either in the provider configuration or set the GOOGLE_APPLICATION_CREDENTIALS environment variable.",
+		)
+		return
+	}
 }
 
 func log(err error, resp *provider.ConfigureResponse) {

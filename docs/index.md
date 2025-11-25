@@ -26,5 +26,8 @@ provider "googleplay" {
 
 - `developer_id` (String) Your unique 19-digit Google Play Developer account ID:
 				https://support.google.com/googleplay/android-developer/answer/13634081?hl=en-GB
+
+### Optional
+
 - `service_account_json_base64` (String, Sensitive) The service account JSON data used to authenticate with Google:
 				https://developers.google.com/android-publisher/getting_started#service-account
