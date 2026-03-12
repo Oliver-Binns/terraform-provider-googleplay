@@ -1,7 +1,5 @@
 # Terraform Provider for Google Play Console
 
-> _This template repository is built on the [Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework). The template repository built on the [Terraform Plugin SDK](https://github.com/hashicorp/terraform-plugin-sdk) can be found at [terraform-provider-scaffolding](https://github.com/hashicorp/terraform-provider-scaffolding). See [Which SDK Should I Use?](https://developer.hashicorp.com/terraform/plugin/framework-benefits) in the Terraform documentation for additional information._
-
 This repository is a [Terraform](https://www.terraform.io) provider for managing resources in the [Google Play Console](https://developers.google.com/android-publisher/api-ref/rest).
 
 This project is [available on the Terraform Registry](https://registry.terraform.io/providers/Oliver-Binns/googleplay/latest).
@@ -14,12 +12,24 @@ Start by declaring a Google Play provider.
 
 This should contain:
 
-- a base64 encoded string representation of your Google Service Account json file which is used for authenticating against the Google Play Developer API. Refer to the [Google Developer documentation](https://developers.google.com/android-publisher/getting_started/?hl=en) for more details.
-- Your Google Play developer ID, this is a 19-digit number than can be found in the Google Play Console.
+- Your Google Play developer ID, this is a 19-digit number that can be found in the Google Play Console.
+- Authentication credentials for the Google Play Developer API. You can provide these either as a base64 encoded string representation of your Google Service Account JSON file, or by setting the `GOOGLE_APPLICATION_CREDENTIALS` environment variable. Refer to the [Google Developer documentation](https://developers.google.com/android-publisher/getting_started/?hl=en) for more details.
 
-```tf
+```hcl
 provider "googleplay" {
   service_account_json_base64 = filebase64("~/service-account.json")
+  developer_id                = "5166846112789481453"
+}
+```
+
+Alternatively, authenticate using Application Default Credentials by setting the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to the path of your service account JSON file:
+
+```shell
+export GOOGLE_APPLICATION_CREDENTIALS="~/service-account.json"
+```
+
+```hcl
+provider "googleplay" {
   developer_id = "5166846112789481453"
 }
 ```
@@ -30,13 +40,12 @@ You can manage Google Play Console users as a Terraform resource (`googleplay_us
 
 Each user requires an email address that they will use to authenticate with the Google Play Console.
 
-A set of [Developer Account permissions](https://developers.google.com/android-publisher/api-ref/rest/v3/users#DeveloperLevelPermission) is also required. This list can be empty.
+A set of [Developer Account permissions](https://developers.google.com/android-publisher/api-ref/rest/v3/users#DeveloperLevelPermission) is required and must include at least one permission.
 
-```tf
+```hcl
 resource "googleplay_user" "oliver" {
-  email = "example@oliverbinns.co.uk"
+  email              = "example@oliverbinns.co.uk"
   global_permissions = ["CAN_SEE_ALL_APPS", "CAN_MANAGE_DRAFT_APPS_GLOBAL"]
-  app_permissions = []
 }
 ```
 
@@ -49,7 +58,7 @@ Each App IAM resource declares:
 - the 19-digit app ID 
 - the set of permissions to be granted
 
-```tf
+```hcl
 resource "googleplay_app_iam" "test_app" {
   app_id  = "0000000000000000000"
   user_id = googleplay_user.oliver.email
@@ -67,7 +76,9 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request## Requirements
+5. Open a Pull Request
+
+## Requirements
 
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
 - [Go](https://golang.org/doc/install) >= 1.22
@@ -95,10 +106,6 @@ go mod tidy
 ```
 
 Then commit the changes to `go.mod` and `go.sum`.
-
-### Using the provider
-
-Fill this in for each provider
 
 ### Developing the Provider
 
