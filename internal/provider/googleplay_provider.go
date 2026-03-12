@@ -27,7 +27,7 @@ type GooglePlayClient struct {
 
 func (c *GooglePlayClient) ListUsers(ctx context.Context) ([]*androidpublisher.User, error) {
 	parent := fmt.Sprintf("developers/%s", c.developerID)
-	resp, err := c.service.Users.List(parent).Context(ctx).Do()
+	resp, err := c.service.Users.List(parent).PageSize(-1).Context(ctx).Do()
 	if err != nil {
 		return nil, err
 	}
