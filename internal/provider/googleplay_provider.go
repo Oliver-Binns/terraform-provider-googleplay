@@ -180,7 +180,7 @@ func (p *GooglePlayProvider) Configure(ctx context.Context, req provider.Configu
 			return
 		}
 
-		service, err := androidpublisher.NewService(ctx, option.WithCredentialsJSON(rawJson))
+		service, err := androidpublisher.NewService(ctx, option.WithAuthCredentialsJSON(option.ServiceAccount, rawJson))
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error creating Android Publisher service",
