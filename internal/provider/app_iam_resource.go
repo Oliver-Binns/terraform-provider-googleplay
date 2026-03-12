@@ -14,8 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/oliver-binns/googleplay-go"
-	"github.com/oliver-binns/googleplay-go/users"
 )
 
 var _ resource.Resource = &AppIAMResource{}
@@ -26,7 +24,7 @@ func NewAppIAMResource() resource.Resource {
 }
 
 type AppIAMResource struct {
-	client *googleplay.Client
+	client *GooglePlayClient
 }
 
 type appIAMResourceModel struct {
@@ -85,12 +83,12 @@ func (r *AppIAMResource) Configure(ctx context.Context, req resource.ConfigureRe
 		return
 	}
 
-	client, ok := req.ProviderData.(*googleplay.Client)
+	client, ok := req.ProviderData.(*GooglePlayClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *googleplay.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *GooglePlayClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -118,7 +116,7 @@ func (r *AppIAMResource) ValidateConfig(ctx context.Context, req resource.Valida
 	}
 
 	// Warn user if they are using an implicit permission
-	permissions := []users.AppLevelPermission{}
+	permissions := []AppLevelPermission{}
 	diag := data.Permissions.ElementsAs(ctx, &permissions, false)
 	resp.Diagnostics.Append(diag...)
 	for _, permission := range permissions {
@@ -146,7 +144,7 @@ func (r *AppIAMResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	permissions := []users.AppLevelPermission{}
+	permissions := []AppLevelPermission{}
 	diag := data.Permissions.ElementsAs(ctx, &permissions, false)
 	resp.Diagnostics.Append(diag...)
 
@@ -253,7 +251,7 @@ func (r *AppIAMResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	permissions := []users.AppLevelPermission{}
+	permissions := []AppLevelPermission{}
 	diag := data.Permissions.ElementsAs(ctx, &permissions, false)
 	resp.Diagnostics.Append(diag...)
 

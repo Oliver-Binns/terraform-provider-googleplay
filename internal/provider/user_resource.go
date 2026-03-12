@@ -12,8 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/oliver-binns/googleplay-go"
-	"github.com/oliver-binns/googleplay-go/users"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -26,7 +24,7 @@ func NewUserResource() resource.Resource {
 }
 
 type UserResource struct {
-	client *googleplay.Client
+	client *GooglePlayClient
 }
 
 type userResourceModel struct {
@@ -87,12 +85,12 @@ func (r *UserResource) Configure(ctx context.Context, req resource.ConfigureRequ
 		return
 	}
 
-	client, ok := req.ProviderData.(*googleplay.Client)
+	client, ok := req.ProviderData.(*GooglePlayClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *googleplay.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *GooglePlayClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -134,7 +132,7 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	permissions := []users.DeveloperLevelPermission{}
+	permissions := []DeveloperLevelPermission{}
 	diag := data.GlobalPermissions.ElementsAs(ctx, &permissions, false)
 	resp.Diagnostics.Append(diag...)
 
@@ -221,7 +219,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	permissions := []users.DeveloperLevelPermission{}
+	permissions := []DeveloperLevelPermission{}
 	diag := data.GlobalPermissions.ElementsAs(ctx, &permissions, false)
 	resp.Diagnostics.Append(diag...)
 

@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/oliver-binns/googleplay-go/users"
 )
 
 func expandUserPermissionsPlanModifier(permissions path.Path) planmodifier.Set {
@@ -38,7 +37,7 @@ func (m *userPermissionsExpansionModifier) PlanModifySet(
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, m.permissions, &permissions)...)
 
 	// expand the permissions
-	expanded_permissions := []users.DeveloperLevelPermission{}
+	expanded_permissions := []DeveloperLevelPermission{}
 	diag := req.PlanValue.ElementsAs(ctx, &permissions, false)
 	resp.Diagnostics.Append(diag...)
 
