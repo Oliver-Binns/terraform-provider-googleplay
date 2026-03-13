@@ -13,7 +13,7 @@ Interact with Google Play Console
 
 ```terraform
 provider "googleplay" {
-  service_account_json_base64 = filebase64("~/service-account.json")
+  service_account_json_base64 = filebase64(pathexpand("~/service-account.json"))
   developer_id                = "5166846112789481453"
 }
 ```

@@ -17,7 +17,7 @@ This should contain:
 
 ```hcl
 provider "googleplay" {
-  service_account_json_base64 = filebase64("~/service-account.json")
+  service_account_json_base64 = filebase64(pathexpand("~/service-account.json"))
   developer_id                = "5166846112789481453"
 }
 ```
@@ -25,7 +25,7 @@ provider "googleplay" {
 Alternatively, authenticate using Application Default Credentials by setting the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to the path of your service account JSON file:
 
 ```shell
-export GOOGLE_APPLICATION_CREDENTIALS="~/service-account.json"
+export GOOGLE_APPLICATION_CREDENTIALS=$HOME/service-account.json
 ```
 
 ```hcl
