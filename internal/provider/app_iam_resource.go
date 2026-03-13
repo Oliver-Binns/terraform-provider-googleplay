@@ -149,10 +149,10 @@ func (r *AppIAMResource) Create(ctx context.Context, req resource.CreateRequest,
 	resp.Diagnostics.Append(diag...)
 
 	grant, err := r.client.GrantAccess(
+		ctx,
 		data.UserID.ValueString(),
 		data.AppID.ValueString(),
 		permissions,
-		ctx,
 	)
 
 	if err != nil {
@@ -256,10 +256,10 @@ func (r *AppIAMResource) Update(ctx context.Context, req resource.UpdateRequest,
 	resp.Diagnostics.Append(diag...)
 
 	grant, err := r.client.ModifyAccess(
+		ctx,
 		data.UserID.ValueString(),
 		data.AppID.ValueString(),
 		permissions,
-		ctx,
 	)
 
 	if err != nil {
@@ -294,9 +294,9 @@ func (r *AppIAMResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 
 	err := r.client.RevokeAccess(
+		ctx,
 		data.UserID.ValueString(),
 		data.AppID.ValueString(),
-		ctx,
 	)
 
 	if err != nil {

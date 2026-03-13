@@ -35,9 +35,9 @@ func (c *GooglePlayClient) ListUsers(ctx context.Context) ([]*androidpublisher.U
 }
 
 func (c *GooglePlayClient) CreateUser(
+	ctx context.Context,
 	email string,
 	permissions []DeveloperLevelPermission,
-	ctx context.Context,
 ) (*androidpublisher.User, error) {
 	parent := fmt.Sprintf("developers/%s", c.developerID)
 	perms := make([]string, len(permissions))
@@ -52,9 +52,9 @@ func (c *GooglePlayClient) CreateUser(
 }
 
 func (c *GooglePlayClient) UpdateUser(
+	ctx context.Context,
 	email string,
 	permissions *[]DeveloperLevelPermission,
-	ctx context.Context,
 ) (*androidpublisher.User, error) {
 	name := fmt.Sprintf("developers/%s/users/%s", c.developerID, email)
 	perms := make([]string, len(*permissions))
@@ -67,16 +67,16 @@ func (c *GooglePlayClient) UpdateUser(
 	return c.service.Users.Patch(name, user).UpdateMask("developerAccountPermissions").Context(ctx).Do()
 }
 
-func (c *GooglePlayClient) DeleteUser(email string, ctx context.Context) error {
+func (c *GooglePlayClient) DeleteUser(ctx context.Context, email string) error {
 	name := fmt.Sprintf("developers/%s/users/%s", c.developerID, email)
 	return c.service.Users.Delete(name).Context(ctx).Do()
 }
 
 func (c *GooglePlayClient) GrantAccess(
+	ctx context.Context,
 	email string,
 	appID string,
 	permissions []AppLevelPermission,
-	ctx context.Context,
 ) (*androidpublisher.Grant, error) {
 	parent := fmt.Sprintf("developers/%s/users/%s", c.developerID, email)
 	perms := make([]string, len(permissions))
@@ -91,10 +91,10 @@ func (c *GooglePlayClient) GrantAccess(
 }
 
 func (c *GooglePlayClient) ModifyAccess(
+	ctx context.Context,
 	email string,
 	appID string,
 	permissions []AppLevelPermission,
-	ctx context.Context,
 ) (*androidpublisher.Grant, error) {
 	name := fmt.Sprintf("developers/%s/users/%s/grants/%s", c.developerID, email, appID)
 	perms := make([]string, len(permissions))
@@ -108,9 +108,9 @@ func (c *GooglePlayClient) ModifyAccess(
 }
 
 func (c *GooglePlayClient) RevokeAccess(
+	ctx context.Context,
 	email string,
 	appID string,
-	ctx context.Context,
 ) error {
 	name := fmt.Sprintf("developers/%s/users/%s/grants/%s", c.developerID, email, appID)
 	return c.service.Grants.Delete(name).Context(ctx).Do()

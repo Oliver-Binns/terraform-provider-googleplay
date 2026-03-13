@@ -137,9 +137,9 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 	resp.Diagnostics.Append(diag...)
 
 	user, err := r.client.CreateUser(
+		ctx,
 		data.Email.ValueString(),
 		permissions,
-		ctx,
 	)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -224,9 +224,9 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	resp.Diagnostics.Append(diag...)
 
 	user, err := r.client.UpdateUser(
+		ctx,
 		data.Email.ValueString(),
 		&permissions,
-		ctx,
 	)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -257,7 +257,7 @@ func (r *UserResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 		return
 	}
 
-	err := r.client.DeleteUser(data.Email.ValueString(), ctx)
+	err := r.client.DeleteUser(ctx, data.Email.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete user, got error: %s", err))
 		return
