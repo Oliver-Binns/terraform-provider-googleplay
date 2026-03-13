@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -12,11 +13,108 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
-	"github.com/oliver-binns/googleplay-go"
+	androidpublisher "google.golang.org/api/androidpublisher/v3"
+	"google.golang.org/api/option"
 )
 
 var _ provider.Provider = &GooglePlayProvider{}
+
+// GooglePlayClient wraps the official Android Publisher service with a developer ID.
+type GooglePlayClient struct {
+	service     *androidpublisher.Service
+	developerID string
+}
+
+func (c *GooglePlayClient) ListUsers(ctx context.Context) ([]*androidpublisher.User, error) {
+	parent := fmt.Sprintf("developers/%s", c.developerID)
+	resp, err := c.service.Users.List(parent).PageSize(-1).Context(ctx).Do()
+	if err != nil {
+		return nil, err
+	}
+	return resp.Users, nil
+}
+
+func (c *GooglePlayClient) CreateUser(
+	ctx context.Context,
+	email string,
+	permissions []DeveloperLevelPermission,
+) (*androidpublisher.User, error) {
+	parent := fmt.Sprintf("developers/%s", c.developerID)
+	perms := make([]string, len(permissions))
+	for i, p := range permissions {
+		perms[i] = string(p)
+	}
+	user := &androidpublisher.User{
+		Email:                       email,
+		DeveloperAccountPermissions: perms,
+	}
+	return c.service.Users.Create(parent, user).Context(ctx).Do()
+}
+
+func (c *GooglePlayClient) UpdateUser(
+	ctx context.Context,
+	email string,
+	permissions *[]DeveloperLevelPermission,
+) (*androidpublisher.User, error) {
+	name := fmt.Sprintf("developers/%s/users/%s", c.developerID, email)
+	perms := make([]string, len(*permissions))
+	for i, p := range *permissions {
+		perms[i] = string(p)
+	}
+	user := &androidpublisher.User{
+		DeveloperAccountPermissions: perms,
+	}
+	return c.service.Users.Patch(name, user).UpdateMask("developerAccountPermissions").Context(ctx).Do()
+}
+
+func (c *GooglePlayClient) DeleteUser(ctx context.Context, email string) error {
+	name := fmt.Sprintf("developers/%s/users/%s", c.developerID, email)
+	return c.service.Users.Delete(name).Context(ctx).Do()
+}
+
+func (c *GooglePlayClient) GrantAccess(
+	ctx context.Context,
+	email string,
+	appID string,
+	permissions []AppLevelPermission,
+) (*androidpublisher.Grant, error) {
+	parent := fmt.Sprintf("developers/%s/users/%s", c.developerID, email)
+	perms := make([]string, len(permissions))
+	for i, p := range permissions {
+		perms[i] = string(p)
+	}
+	grant := &androidpublisher.Grant{
+		PackageName:         appID,
+		AppLevelPermissions: perms,
+	}
+	return c.service.Grants.Create(parent, grant).Context(ctx).Do()
+}
+
+func (c *GooglePlayClient) ModifyAccess(
+	ctx context.Context,
+	email string,
+	appID string,
+	permissions []AppLevelPermission,
+) (*androidpublisher.Grant, error) {
+	name := fmt.Sprintf("developers/%s/users/%s/grants/%s", c.developerID, email, appID)
+	perms := make([]string, len(permissions))
+	for i, p := range permissions {
+		perms[i] = string(p)
+	}
+	grant := &androidpublisher.Grant{
+		AppLevelPermissions: perms,
+	}
+	return c.service.Grants.Patch(name, grant).UpdateMask("appLevelPermissions").Context(ctx).Do()
+}
+
+func (c *GooglePlayClient) RevokeAccess(
+	ctx context.Context,
+	email string,
+	appID string,
+) error {
+	name := fmt.Sprintf("developers/%s/users/%s/grants/%s", c.developerID, email, appID)
+	return c.service.Grants.Delete(name).Context(ctx).Do()
+}
 
 // GooglePlayProvider defines the provider implementation.
 type GooglePlayProvider struct {
@@ -74,23 +172,41 @@ func (p *GooglePlayProvider) Configure(ctx context.Context, req provider.Configu
 
 		serviceAccountBase64 := data.ServiceAccountJson.ValueString()
 		rawJson, err := base64.StdEncoding.DecodeString(serviceAccountBase64)
-		log(err, resp)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error parsing service account JSON",
+				err.Error(),
+			)
+			return
+		}
 
-		client := googleplay.GooglePlayClient(
-			developerID,
-			string(rawJson),
-		)
+		service, err := androidpublisher.NewService(ctx, option.WithAuthCredentialsJSON(option.ServiceAccount, rawJson))
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error creating Android Publisher service",
+				err.Error(),
+			)
+			return
+		}
+
+		client := &GooglePlayClient{service: service, developerID: developerID}
 		resp.DataSourceData = client
 		resp.ResourceData = client
 	} else if google_credentials != "" {
 		tflog.Info(ctx, "Using service account from GOOGLE_APPLICATION_CREDENTIALS environment variable")
 
-		client := googleplay.GooglePlayDefaultClient(
-			developerID,
-		)
+		service, err := androidpublisher.NewService(ctx)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error creating Android Publisher service",
+				err.Error(),
+			)
+			return
+		}
 
 		tflog.Info(ctx, "created client successfully")
 
+		client := &GooglePlayClient{service: service, developerID: developerID}
 		resp.DataSourceData = client
 		resp.ResourceData = client
 
@@ -98,16 +214,6 @@ func (p *GooglePlayProvider) Configure(ctx context.Context, req provider.Configu
 		resp.Diagnostics.AddError(
 			"Missing service account JSON",
 			"Please either provide service account credentials either in the provider configuration or set the GOOGLE_APPLICATION_CREDENTIALS environment variable.",
-		)
-		return
-	}
-}
-
-func log(err error, resp *provider.ConfigureResponse) {
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error parsing service account JSON",
-			err.Error(),
 		)
 		return
 	}
