@@ -13,9 +13,8 @@ Interact with Google Play Console
 
 ```terraform
 provider "googleplay" {
-  issuer_id   = "4389f85c-98c6-4023-ab25-8154fcd9460d"
-  key_id      = "A1234B5678"
-  private_key = file("private_api_key.p8")
+  service_account_json_base64 = filebase64(pathexpand("~/service-account.json"))
+  developer_id                = "5166846112789481453"
 }
 ```
 
