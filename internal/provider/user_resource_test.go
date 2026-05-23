@@ -126,6 +126,7 @@ func TestAccUserResource(t *testing.T) {
 						"googleplay_user.oliver",
 						tfjsonpath.New("expanded_permissions"),
 						knownvalue.SetExact([]knownvalue.Check{
+							knownvalue.StringExact("CAN_SEE_ALL_APPS"),
 							knownvalue.StringExact("CAN_VIEW_FINANCIAL_DATA_GLOBAL"),
 							knownvalue.StringExact("CAN_MANAGE_PERMISSIONS_GLOBAL"),
 							knownvalue.StringExact("CAN_EDIT_GAMES_GLOBAL"),
@@ -137,6 +138,7 @@ func TestAccUserResource(t *testing.T) {
 							knownvalue.StringExact("CAN_MANAGE_PUBLIC_LISTING_GLOBAL"),
 							knownvalue.StringExact("CAN_MANAGE_DRAFT_APPS_GLOBAL"),
 							knownvalue.StringExact("CAN_CREATE_MANAGED_PLAY_APPS_GLOBAL"),
+							knownvalue.StringExact("CAN_CHANGE_MANAGED_PLAY_SETTING_GLOBAL"),
 							knownvalue.StringExact("CAN_MANAGE_ORDERS_GLOBAL"),
 							knownvalue.StringExact("CAN_MANAGE_APP_CONTENT_GLOBAL"),
 							knownvalue.StringExact("CAN_VIEW_NON_FINANCIAL_DATA_GLOBAL"),
