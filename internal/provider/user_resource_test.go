@@ -144,6 +144,7 @@ func TestAccUserResource(t *testing.T) {
 							knownvalue.StringExact("CAN_VIEW_APP_QUALITY_GLOBAL"),
 							knownvalue.StringExact("CAN_MANAGE_DEEPLINKS_GLOBAL"),
 							knownvalue.StringExact("CAN_VIEW_CONNECTED_APPS_GLOBAL"),
+							knownvalue.StringExact("CAN_EDIT_CONNECTED_APPS_GLOBAL"),
 						}),
 					),
 				},
