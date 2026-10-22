@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/function"
@@ -87,7 +88,40 @@ func (c *GooglePlayClient) GrantAccess(
 		PackageName:         appID,
 		AppLevelPermissions: perms,
 	}
+
+	// Look for an existing grant rather than reacting to the API's duplicate
+	// error, so unrelated validation failures are never mistaken for a conflict.
+	exists, err := c.grantExists(ctx, email, appID)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		// The grant is present but absent from Terraform state: reconcile its
+		// permissions to match configuration instead of failing.
+		return c.ModifyAccess(ctx, email, appID, permissions)
+	}
+
 	return c.service.Grants.Create(parent, grant).Context(ctx).Do()
+}
+
+func (c *GooglePlayClient) grantExists(ctx context.Context, email string, appID string) (bool, error) {
+	users, err := c.ListUsers(ctx)
+	if err != nil {
+		return false, err
+	}
+	for _, user := range users {
+		if user.Email != email {
+			continue
+		}
+		for _, grant := range user.Grants {
+			// Name: developers/DEVELOPER_ID/users/EMAIL/grants/APP_ID
+			components := strings.Split(grant.Name, "/")
+			if len(components) > 5 && components[5] == appID {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 func (c *GooglePlayClient) ModifyAccess(
