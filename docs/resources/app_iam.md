@@ -26,3 +26,14 @@ Manage app level access to the Google Play Console
 
 - `expanded_permissions` (Set of String) Permissions for the user which apply to this specific app:
 				https://developers.google.com/android-publisher/api-ref/rest/v3/grants#applevelpermission
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+# Format: EMAIL/APP_ID
+terraform import googleplay_app_iam.test_app "user@example.com/0000000000000000000"
+```
