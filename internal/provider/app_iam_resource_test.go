@@ -126,11 +126,12 @@ func TestAccAppIAMResource(t *testing.T) {
 			},
 			// Test import
 			{
-				ResourceName:            "googleplay_app_iam.test_app",
-				ImportState:             true,
-				ImportStateId:           accountEmail + "/4973279986054171407",
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"permissions"},
+				ResourceName:                         "googleplay_app_iam.test_app",
+				ImportState:                          true,
+				ImportStateId:                        accountEmail + "/4973279986054171407",
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "app_id",
+				ImportStateVerifyIgnore:              []string{"permissions"},
 			},
 			// Delete testing automatically occurs in TestCase
 		},
