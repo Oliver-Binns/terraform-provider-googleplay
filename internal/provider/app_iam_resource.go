@@ -18,6 +18,7 @@ import (
 
 var _ resource.Resource = &AppIAMResource{}
 var _ resource.ResourceWithValidateConfig = &AppIAMResource{}
+var _ resource.ResourceWithImportState = &AppIAMResource{}
 
 func NewAppIAMResource() resource.Resource {
 	return &AppIAMResource{}
@@ -217,13 +218,15 @@ func (r *AppIAMResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
+	grantFound := false
 	for _, user := range users {
 		if user.Email == userID {
 			for _, grant := range user.Grants {
 				// App ID is actually:
 				// developers/DEVELOPER_ID/users/EMAIL/grants/APP_ID
 				components := strings.Split(grant.Name, "/")
-				if components[5] == appID {
+				if len(components) > 5 && components[5] == appID {
+					grantFound = true
 					data.UserID = types.StringValue(components[3])
 					data.AppID = types.StringValue(components[5])
 
@@ -237,8 +240,29 @@ func (r *AppIAMResource) Read(ctx context.Context, req resource.ReadRequest, res
 		}
 	}
 
+	if !grantFound {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+// ImportState imports an existing grant using the ID "EMAIL/APP_ID".
+// Only identity attributes are set here; Read populates the rest.
+func (r *AppIAMResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	email, appID, found := strings.Cut(req.ID, "/")
+	if !found || email == "" || appID == "" {
+		resp.Diagnostics.AddError(
+			"Unexpected Import Identifier",
+			fmt.Sprintf("Expected import identifier in the format \"email/app_id\", got: %q", req.ID),
+		)
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("user_id"), email)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("app_id"), appID)...)
 }
 
 func (r *AppIAMResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
