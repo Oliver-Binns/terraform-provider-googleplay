@@ -17,7 +17,7 @@ Manage app level access to the Google Play Console
 
 ### Required
 
-- `app_id` (String) The app / package ID to grant access to
+- `app_id` (String) The app to grant access to: either the numeric app ID or the package name (e.g. `uk.gov.android.onelogin`). The numeric app ID keeps working after a draft app is published, as the provider resolves and records the package name in `package_name`.
 - `permissions` (Set of String) Permissions for the user which apply to this specific app:
 				https://developers.google.com/android-publisher/api-ref/rest/v3/grants#applevelpermission
 - `user_id` (String) The ID for the user: this is the email they use to login to Google Play
@@ -26,6 +26,7 @@ Manage app level access to the Google Play Console
 
 - `expanded_permissions` (Set of String) Permissions for the user which apply to this specific app:
 				https://developers.google.com/android-publisher/api-ref/rest/v3/grants#applevelpermission
+- `package_name` (String) The package name of the app, as reported by Google Play. This is empty for draft apps which do not have one yet.
 
 ## Import
 
