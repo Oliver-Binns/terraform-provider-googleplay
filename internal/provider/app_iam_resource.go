@@ -53,7 +53,7 @@ func (r *AppIAMResource) Schema(ctx context.Context, req resource.SchemaRequest,
 				},
 			},
 			"app_id": schema.StringAttribute{
-				MarkdownDescription: "The app / package ID to grant access to",
+				MarkdownDescription: "The app to grant access to. This is the grant's package name (e.g. `uk.gov.android.onelogin`), or the numeric app ID for draft apps which do not yet have a package name.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -164,12 +164,8 @@ func (r *AppIAMResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	// App ID is actually:
-	// developers/DEVELOPER_ID/users/EMAIL/grants/APP_ID
-	components := strings.Split(grant.Name, "/")
-	data.UserID = types.StringValue(components[3])
-	data.AppID = types.StringValue(components[5])
-
+	// user_id and app_id are kept as planned: the grant name only carries them
+	// as an email and a package name (or app ID for draft apps).
 	data.ExpandedPermissions, diag = types.SetValueFrom(ctx, types.StringType, grant.AppLevelPermissions)
 	resp.Diagnostics.Append(diag...)
 
@@ -222,13 +218,8 @@ func (r *AppIAMResource) Read(ctx context.Context, req resource.ReadRequest, res
 	for _, user := range users {
 		if user.Email == userID {
 			for _, grant := range user.Grants {
-				// App ID is actually:
-				// developers/DEVELOPER_ID/users/EMAIL/grants/APP_ID
-				components := strings.Split(grant.Name, "/")
-				if len(components) > 5 && components[5] == appID {
+				if grantMatchesApp(grant, appID) {
 					grantFound = true
-					data.UserID = types.StringValue(components[3])
-					data.AppID = types.StringValue(components[5])
 
 					var diag diag.Diagnostics
 					data.ExpandedPermissions, diag = types.SetValueFrom(ctx, types.StringType, grant.AppLevelPermissions)
@@ -294,12 +285,8 @@ func (r *AppIAMResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	// App ID is actually:
-	// developers/DEVELOPER_ID/users/EMAIL/grants/APP_ID
-	components := strings.Split(grant.Name, "/")
-	data.UserID = types.StringValue(components[3])
-	data.AppID = types.StringValue(components[5])
-
+	// user_id and app_id are kept as planned: the grant name only carries them
+	// as an email and a package name (or app ID for draft apps).
 	data.ExpandedPermissions, diag = types.SetValueFrom(ctx, types.StringType, grant.AppLevelPermissions)
 	resp.Diagnostics.Append(diag...)
 

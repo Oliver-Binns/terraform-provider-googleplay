@@ -121,3 +121,20 @@ func TestGrantAccessPropagatesUnrelatedCreateError(t *testing.T) {
 	assert.Equal(t, 1, f.createCalls)
 	assert.Equal(t, 0, f.patchCalls)
 }
+
+func TestGrantMatchesApp(t *testing.T) {
+	published := &androidpublisher.Grant{
+		Name:        "developers/dev/users/user@example.com/grants/uk.gov.app",
+		PackageName: "uk.gov.app",
+	}
+	draft := &androidpublisher.Grant{
+		Name: "developers/dev/users/user@example.com/grants/4973279986054171407",
+	}
+	malformed := &androidpublisher.Grant{Name: "developers/dev"}
+
+	assert.True(t, grantMatchesApp(published, "uk.gov.app"))
+	assert.False(t, grantMatchesApp(published, "4973279986054171407"))
+	assert.True(t, grantMatchesApp(draft, "4973279986054171407"))
+	assert.False(t, grantMatchesApp(draft, "uk.gov.app"))
+	assert.False(t, grantMatchesApp(malformed, "dev"))
+}
