@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	androidpublisher "google.golang.org/api/androidpublisher/v3"
 )
 
 var _ resource.Resource = &AppIAMResource{}
@@ -33,6 +34,25 @@ type appIAMResourceModel struct {
 	AppID               types.String `tfsdk:"app_id"`
 	Permissions         types.Set    `tfsdk:"permissions"`
 	ExpandedPermissions types.Set    `tfsdk:"expanded_permissions"`
+	PackageName         types.String `tfsdk:"package_name"`
+}
+
+// grantID is the identifier used to address the grant: the resolved package
+// name when known, otherwise the configured app_id.
+func (m appIAMResourceModel) grantID() string {
+	if m.PackageName.ValueString() != "" {
+		return m.PackageName.ValueString()
+	}
+	return m.AppID.ValueString()
+}
+
+// grantPackageName returns the grant's package name, or null for draft apps
+// which do not have one yet.
+func grantPackageName(grant *androidpublisher.Grant) types.String {
+	if grant.PackageName == "" {
+		return types.StringNull()
+	}
+	return types.StringValue(grant.PackageName)
 }
 
 func (r *AppIAMResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -53,7 +73,7 @@ func (r *AppIAMResource) Schema(ctx context.Context, req resource.SchemaRequest,
 				},
 			},
 			"app_id": schema.StringAttribute{
-				MarkdownDescription: "The app to grant access to. This is the grant's package name (e.g. `uk.gov.android.onelogin`), or the numeric app ID for draft apps which do not yet have a package name.",
+				MarkdownDescription: "The app to grant access to: either the numeric app ID or the package name (e.g. `uk.gov.android.onelogin`). The numeric app ID keeps working after a draft app is published, as the provider resolves and records the package name in `package_name`.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -64,6 +84,10 @@ func (r *AppIAMResource) Schema(ctx context.Context, req resource.SchemaRequest,
 				https://developers.google.com/android-publisher/api-ref/rest/v3/grants#applevelpermission`,
 				ElementType: types.StringType,
 				Required:    true,
+			},
+			"package_name": schema.StringAttribute{
+				MarkdownDescription: "The package name of the app, as reported by Google Play. This is empty for draft apps which do not have one yet.",
+				Computed:            true,
 			},
 			"expanded_permissions": schema.SetAttribute{
 				MarkdownDescription: `Permissions for the user which apply to this specific app:
@@ -166,6 +190,7 @@ func (r *AppIAMResource) Create(ctx context.Context, req resource.CreateRequest,
 
 	// user_id and app_id are kept as planned: the grant name only carries them
 	// as an email and a package name (or app ID for draft apps).
+	data.PackageName = grantPackageName(grant)
 	data.ExpandedPermissions, diag = types.SetValueFrom(ctx, types.StringType, grant.AppLevelPermissions)
 	resp.Diagnostics.Append(diag...)
 
@@ -214,30 +239,64 @@ func (r *AppIAMResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	grantFound := false
+	var found *androidpublisher.Grant
 	for _, user := range users {
-		if user.Email == userID {
-			for _, grant := range user.Grants {
-				if grantMatchesApp(grant, appID) {
-					grantFound = true
-
-					var diag diag.Diagnostics
-					data.ExpandedPermissions, diag = types.SetValueFrom(ctx, types.StringType, grant.AppLevelPermissions)
-					resp.Diagnostics.Append(diag...)
-					break
-				}
-			}
-			break
+		if user.Email != userID {
+			continue
 		}
+		for _, grant := range user.Grants {
+			if grantMatchesApp(grant, appID) || (data.PackageName.ValueString() != "" && grantMatchesApp(grant, data.PackageName.ValueString())) {
+				found = grant
+				break
+			}
+		}
+		break
 	}
 
-	if !grantFound {
+	if found == nil {
+		found = r.resolvePublishedGrant(ctx, &data)
+	}
+
+	if found == nil {
 		resp.State.RemoveResource(ctx)
 		return
 	}
 
+	var diag diag.Diagnostics
+	data.PackageName = grantPackageName(found)
+	data.ExpandedPermissions, diag = types.SetValueFrom(ctx, types.StringType, found.AppLevelPermissions)
+	resp.Diagnostics.Append(diag...)
+
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+// resolvePublishedGrant handles a draft app that has since been published: its
+// grant is then listed under the package name, so a numeric app_id no longer
+// matches the list. The API still accepts the numeric ID when addressing the
+// grant directly, so re-send the recorded permissions (no change) to resolve it
+// to the grant, which carries the package name. Returns nil if the grant does
+// not exist or there are no recorded permissions to re-send.
+func (r *AppIAMResource) resolvePublishedGrant(ctx context.Context, data *appIAMResourceModel) *androidpublisher.Grant {
+	if data.ExpandedPermissions.IsNull() || data.ExpandedPermissions.IsUnknown() {
+		return nil
+	}
+
+	recorded := []string{}
+	if data.ExpandedPermissions.ElementsAs(ctx, &recorded, false).HasError() || len(recorded) == 0 {
+		return nil
+	}
+	permissions := make([]AppLevelPermission, len(recorded))
+	for i, p := range recorded {
+		permissions[i] = AppLevelPermission(p)
+	}
+
+	grant, err := r.client.ModifyAccess(ctx, data.UserID.ValueString(), data.AppID.ValueString(), permissions)
+	if err != nil {
+		tflog.Debug(ctx, "grant not found when resolving by app_id", map[string]any{"error": err.Error()})
+		return nil
+	}
+	return grant
 }
 
 // ImportState imports an existing grant using the ID "EMAIL/APP_ID".
@@ -287,6 +346,7 @@ func (r *AppIAMResource) Update(ctx context.Context, req resource.UpdateRequest,
 
 	// user_id and app_id are kept as planned: the grant name only carries them
 	// as an email and a package name (or app ID for draft apps).
+	data.PackageName = grantPackageName(grant)
 	data.ExpandedPermissions, diag = types.SetValueFrom(ctx, types.StringType, grant.AppLevelPermissions)
 	resp.Diagnostics.Append(diag...)
 
@@ -307,7 +367,7 @@ func (r *AppIAMResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	err := r.client.RevokeAccess(
 		ctx,
 		data.UserID.ValueString(),
-		data.AppID.ValueString(),
+		data.grantID(),
 	)
 
 	if err != nil {

@@ -44,12 +44,18 @@ func (f *fakePlayAPI) handler(t *testing.T) http.Handler {
 			require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
 			body.Name = grantName
 			_ = json.NewEncoder(w).Encode(body)
-		case r.Method == http.MethodPatch && strings.HasSuffix(r.URL.Path, "/grants/app1"):
+		case r.Method == http.MethodPatch && strings.Contains(r.URL.Path, "/grants/"):
 			f.patchCalls++
+			if f.existing == nil {
+				w.WriteHeader(http.StatusNotFound)
+				_, _ = w.Write([]byte(`{"error":{"code":404,"message":"not found"}}`))
+				return
+			}
 			var body androidpublisher.Grant
 			require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
 			f.patched = body.AppLevelPermissions
 			body.Name = grantName
+			body.PackageName = "app1"
 			_ = json.NewEncoder(w).Encode(body)
 		default:
 			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
@@ -118,8 +124,10 @@ func TestGrantAccessPropagatesUnrelatedCreateError(t *testing.T) {
 		[]AppLevelPermission{"CAN_VIEW_APP_QUALITY"})
 
 	require.Error(t, err)
+	assert.Contains(t, err.Error(), "bad request")
 	assert.Equal(t, 1, f.createCalls)
-	assert.Equal(t, 0, f.patchCalls)
+	// A reconcile is attempted, but fails as there is no grant, so the create error wins.
+	assert.Equal(t, 1, f.patchCalls)
 }
 
 func TestGrantMatchesApp(t *testing.T) {
@@ -137,4 +145,20 @@ func TestGrantMatchesApp(t *testing.T) {
 	assert.True(t, grantMatchesApp(draft, "4973279986054171407"))
 	assert.False(t, grantMatchesApp(draft, "uk.gov.app"))
 	assert.False(t, grantMatchesApp(malformed, "dev"))
+}
+
+func TestGrantAccessResolvesNumericIDOfPublishedApp(t *testing.T) {
+	// The grant is listed under its package name ("app1"), so the numeric ID
+	// does not match the listing and the create is rejected as a duplicate.
+	f := &fakePlayAPI{existing: []string{"CAN_VIEW_FINANCIAL_DATA"}, createCode: http.StatusConflict}
+	client := newFakeClient(t, f)
+
+	grant, err := client.GrantAccess(context.Background(), "user@example.com", "123456",
+		[]AppLevelPermission{"CAN_VIEW_APP_QUALITY"})
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, f.createCalls)
+	assert.Equal(t, 1, f.patchCalls)
+	assert.Equal(t, []string{"CAN_VIEW_APP_QUALITY"}, f.patched)
+	assert.Equal(t, "app1", grant.PackageName)
 }

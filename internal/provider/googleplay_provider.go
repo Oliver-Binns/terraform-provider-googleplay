@@ -101,7 +101,19 @@ func (c *GooglePlayClient) GrantAccess(
 		return c.ModifyAccess(ctx, email, appID, permissions)
 	}
 
-	return c.service.Grants.Create(parent, grant).Context(ctx).Do()
+	created, err := c.service.Grants.Create(parent, grant).Context(ctx).Do()
+	if err == nil {
+		return created, nil
+	}
+
+	// The listing only matches grants by package name (or the app ID of a draft
+	// app), but the API also accepts the numeric app ID of a published app when
+	// addressing a grant. If a grant exists that we could not match, patching it
+	// reconciles the permissions; if it does not, report the original error.
+	if reconciled, patchErr := c.ModifyAccess(ctx, email, appID, permissions); patchErr == nil {
+		return reconciled, nil
+	}
+	return nil, err
 }
 
 func (c *GooglePlayClient) grantExists(ctx context.Context, email string, appID string) (bool, error) {
