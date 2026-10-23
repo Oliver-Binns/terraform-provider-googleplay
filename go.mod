@@ -9,7 +9,7 @@ require (
 	github.com/hashicorp/terraform-plugin-log v0.10.0
 	github.com/hashicorp/terraform-plugin-testing v1.15.0
 	github.com/stretchr/testify v1.12.1
-	google.golang.org/api v0.304.0
+	google.golang.org/api v0.305.0
 )
 
 require (
